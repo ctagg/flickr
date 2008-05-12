@@ -70,7 +70,7 @@ class Flickr
   # client object shuld be initialized with this. You'll also need a shared
   # secret code if you want to use authentication (e.g. to get a user's
   # private photos)
-  # There are two ways to initalze the Flickr client. The preferred way is with
+  # There are two ways to initialize the Flickr client. The preferred way is with
   # a hash of params, e.g. 'api_key' => 'your_api_key', 'shared_secret' => 
   # 'shared_secret_code'. The older (deprecated) way is to pass an ordered series of 
   # arguments. This is provided for continuity only, as several of the arguments
@@ -103,7 +103,8 @@ class Flickr
   end
   
   # Stores authentication credentials to use on all subsequent calls.
-  # If authentication succeeds, returns a User object
+  # If authentication succeeds, returns a User object.
+  # NB This call is no longer in API and will result in an error if called
   def login(email='', password='')
     @email = email
     @password = password
@@ -144,7 +145,7 @@ class Flickr
   # Implements flickr.people.findByEmail and flickr.people.findByUsername. 
   def users(lookup=nil)
     user = people_findByEmail('find_email'=>lookup)['user'] rescue people_findByUsername('username'=>lookup)['user']
-    return User.new(user["nsid"], user["username"], nil, nil, @api_key)
+    return User.new("id" => user["nsid"], "username" => user["username"], "client" => self)
   end
 
   # Implements flickr.groups.getActiveList

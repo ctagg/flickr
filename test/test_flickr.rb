@@ -188,6 +188,29 @@ class TestFlickr < Test::Unit::TestCase
     assert_kind_of Flickr::Photo, photos.first
   end
   
+  # users tests
+  def test_should_find_user_from_email
+    f = flickr_client
+    f.expects(:request).with('people.findByEmail', anything).returns(dummy_user_response)
+    assert_kind_of Flickr::User, user = f.users("email@test.com")
+    assert_equal "12037949632@N01", user.id
+    assert_equal "Stewart", user.username
+  end
+  
+  def test_should_find_user_from_username_if_fails_to_get_from_email
+    f = flickr_client
+    f.expects(:request).with('people.findByEmail', anything).raises
+    f.expects(:request).with('people.findByUsername', anything).returns(dummy_user_response)
+    assert_kind_of Flickr::User, f.users("email@test.com")
+  end
+  
+  def test_should_pass_on_flickr_client_when_finding_user
+    f = flickr_client
+    f.stubs(:request).returns(dummy_user_response)
+    user = f.users("email@test.com")
+    assert_equal f, user.client
+  end
+  
   # ##### DIRECT MODE
   # 
   # def test_test_echo
@@ -199,14 +222,6 @@ class TestFlickr < Test::Unit::TestCase
   # 
   # 
   # ##### BASICS
-  # 
-  # def test_request
-  #   assert_equal @f.request('test.echo')['stat'], 'ok'
-  # end
-  # 
-  # def test_request_url
-  #   assert_equal "http://flickr.com/services/rest/?api_key=#{@api_key}&method=flickr.test.echo&foo=bar&email=#{@email}&password=#{@password}", @f.request_url('test.echo', ['foo'=>'bar'])
-  # end
   # 
   # def test_login
   #   assert_equal @username, @f.user.getInfo.username
@@ -222,12 +237,6 @@ class TestFlickr < Test::Unit::TestCase
   #   assert_equal @user_id, @f.photos('user_id'=>@user_id).first.getInfo.owner.id  # search by user_id
   # end
   # 
-  # def test_users
-  #   assert_equal @username, @f.users(@email).getInfo.username     # find by email
-  #   assert_equal @username, @f.users(@username).getInfo.username  # find by username
-  #   assert_kind_of Flickr::User, @f.users.first                   # find all online users
-  # end
-  # 
   # def test_groups
   #   assert_kind_of Flickr::Group, @f.groups.first                   # find all active groups
   # end
@@ -240,6 +249,8 @@ class TestFlickr < Test::Unit::TestCase
   # 
   # Flickr#photos tests
   # 
+  
+  
   # ##### USER
   # 
   def test_should_instantiate_user
@@ -267,17 +278,26 @@ class TestFlickr < Test::Unit::TestCase
     assert_equal 'bar456', user.client.api_key
   end
   
-  def test_should_instantiate_new_client_when_instantiating_user
+  def test_should_instantiate_new_client_when_instantiating_user_if_no_client_passed_in_params
+    f = flickr_client
+    Flickr.expects(:new).returns(f)
     user = Flickr::User.new({ 'id' => 'foo123',
                               'username' => 'some_user',
                               'name' => 'Some User', 
                               'auth_token' => 'foobar789',
                               'shared_secret' => 'some_secret',
                               'api_key' => 'an_api_key' })
-    assert_kind_of Flickr, user.client
-    assert_equal 'foobar789', user.client.auth_token
-    assert_equal 'an_api_key', user.client.api_key
-    assert_equal 'some_secret', user.client.instance_variable_get(:@shared_secret)
+    assert_equal f, user.client
+  end
+  
+  def test_should_not_instantiate_new_client_when_instantiating_user_if_client_passed_in_params
+    f = flickr_client
+    Flickr.expects(:new).never
+    user = Flickr::User.new({ 'id' => 'foo123',
+                              'username' => 'some_user',
+                              'name' => 'Some User',
+                              'client' => f })
+    assert_equal f, user.client
   end
   
   def test_should_not_instantiate_new_client_if_existing_client_passed
@@ -663,6 +683,13 @@ class TestFlickr < Test::Unit::TestCase
         { "id" => "foo123", 
            "key1" => "value1", 
            "key2" => "value2" } } }
+  end
+  
+  def dummy_user_response
+    { "user" => 
+      { "nsid" => "12037949632@N01",
+        "username" => "Stewart" }
+    }
   end
   
   def successful_xml_response

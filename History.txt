@@ -1,8 +1,14 @@
+== 1.0.5 2008-05-12
+
+* Minor enhancements:
+	* Tweaked internals so new client instance isn't created each time new object (e.g. photo, user) is created
+	* Improved test coverage
+	
 == 1.0.4 2008-05-11
 
 * 1 major enhancement:
   * Added authentication facility as per current Flickr API
-* 1 minor enhancements:
+* 3 minor enhancements:
 	* Improved test suite
 	* Improved API for creating Flickr objects (old one still works)
 	* Protected methods that are only used internally (e.g. request, request_url)
