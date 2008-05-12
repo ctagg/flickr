@@ -1,6 +1,0 @@
-Version 1.0.4 
-Replaced old authentication system (which no works with current version of API) with new one based on auth_tokens - CT
-Made methods that are only used internally protected (e.g. request, request_url) - CT
-
-Version 1.0.3 
-Fixed multiple bugs (Flickr::User was basically broken) and improved performance by reducing calls to API wen not needed - CT

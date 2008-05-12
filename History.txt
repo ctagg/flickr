@@ -1,0 +1,19 @@
+== 1.0.4 2008-05-11
+
+* 1 major enhancement:
+  * Added authentication facility as per current Flickr API
+* 1 minor enhancements:
+	* Improved test suite
+	* Improved API for creating Flickr objects (old one still works)
+	* Protected methods that are only used internally (e.g. request, request_url)
+
+== 1.0.3 2008-04-18
+
+* Various bugfixes:
+	* User instantiation was broken (wrong number of params passed)
+	* Instantiating photos failed in several places if single photo returned
+	* Photosets#getInfo would always fail as the parameter name should be photoset_id, not photosets_id
+	* Removed call to flickr.people.getOnlineList in Flickr#users as that call is no longer in the Flickr API
+* Performance improvements:
+	* Url and image source uri now generated without a call to the Flickr API, as per the Flickr API docs
+	

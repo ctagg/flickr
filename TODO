@@ -1,0 +1,6 @@
+TODO:
+Complete test suite for untested methods
+Bring outdated methods up-to-date
+Write documentation
+Add missing Flickr API call
+Convert dates to ruby dates
