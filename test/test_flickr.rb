@@ -7,7 +7,7 @@ class TestFlickr < Test::Unit::TestCase
 
   # Flickr client tests
   # 
-  # instatiation tests
+  # instantiation tests
   def test_should_instantiate_new_flickr_client
     Flickr.any_instance.stubs(:login)
     flickr = Flickr.new('some_api_key', 'email@test.com', 'some_password', 'some_shared_secret')
@@ -34,7 +34,7 @@ class TestFlickr < Test::Unit::TestCase
     flickr = Flickr.new('api_key' => 'some_api_key', 'email' => 'email@test.com', 'password' => 'some_password', 'shared_secret' => 'some_shared_secret', 'foo' => 'bar')
   end
   
-  # signature_from tests
+  # signature_from method tests
   def test_should_return_signature_from_given_params
     assert_equal Digest::MD5.hexdigest('shared_secret_codea_param1234xb_param5678yc_param97531t'), 
                    authenticated_flickr_client.send(:signature_from, {:b_param => '5678y', 'c_param' => '97531t', :a_param => '1234x', :d_param => nil})
@@ -44,7 +44,7 @@ class TestFlickr < Test::Unit::TestCase
     assert_nil flickr_client.send(:signature_from, {:b_param => '5678y', :c_param => '97531t', :a_param => '1234x'})
   end
   
-  # request_url tests
+  # request_url method tests
   def test_should_get_signature_for_params_when_building_url
     f = authenticated_flickr_client
     f.expects(:signature_from).with( 'method' => 'flickr.someMethod', 
@@ -86,7 +86,7 @@ class TestFlickr < Test::Unit::TestCase
     f.some_unknown_methodForFlickr
   end
   
-  # request tests
+  # request method tests
   def test_should_make_successful_request
     f = flickr_client    
     f.expects(:http_get).with('some.url').returns(successful_xml_response)
@@ -162,7 +162,7 @@ class TestFlickr < Test::Unit::TestCase
     assert_equal f, user.client
   end
   
-  # photos tests
+  # photos method tests
   def test_should_get_recent_photos_if_no_params_for_photos
     f = flickr_client
     f.expects(:photos_getRecent).returns({"photos" => {"photo" => []}})
@@ -180,7 +180,7 @@ class TestFlickr < Test::Unit::TestCase
     f.photos
   end
   
-  # photos_search tests
+  # photos_search method tests
   def test_should_search_photos
     f = authenticated_flickr_client
     f.expects(:request).with('photos.search', anything).returns(dummy_photos_response)
@@ -188,7 +188,7 @@ class TestFlickr < Test::Unit::TestCase
     assert_kind_of Flickr::Photo, photos.first
   end
   
-  # users tests
+  # users method tests
   def test_should_find_user_from_email
     f = flickr_client
     f.expects(:request).with('people.findByEmail', anything).returns(dummy_user_response)
@@ -209,6 +209,30 @@ class TestFlickr < Test::Unit::TestCase
     f.stubs(:request).returns(dummy_user_response)
     user = f.users("email@test.com")
     assert_equal f, user.client
+  end
+  
+  # groups method tests
+  def test_should_search_for_given_group
+    f = flickr_client
+    f.expects(:request).with("groups.search", {"text" => "foo"}).returns(dummy_groups_response)
+    f.groups("foo")
+  end
+  
+  def test_should_search_for_given_group_with_additional_params
+    f = flickr_client
+    f.expects(:request).with("groups.search", {"text" => "foo", "per_page" => "1"}).returns(dummy_groups_response)
+    f.groups("foo", "per_page" => "1")
+  end
+  
+  def test_should_instantiate_groups_from_search_response
+    f = flickr_client
+    f.stubs(:request).returns(dummy_groups_response)
+    assert_kind_of Array, groups = f.groups("foo")
+    assert_kind_of Flickr::Group, group = groups.first
+    assert_equal "group1", group.id
+    assert_equal "Group One", group.name
+    assert_equal "0", group.instance_variable_get(:@eighteenplus)
+    assert_equal f, group.client
   end
   
   # ##### DIRECT MODE
@@ -232,15 +256,6 @@ class TestFlickr < Test::Unit::TestCase
   #   assert_equal @user_id, @f.find_by_url(@user_url).getInfo.id       # find user by URL
   # end
   # 
-  # def test_photos
-  #   assert_equal 100, @f.photos.size                                              # find recent
-  #   assert_equal @user_id, @f.photos('user_id'=>@user_id).first.getInfo.owner.id  # search by user_id
-  # end
-  # 
-  # def test_groups
-  #   assert_kind_of Flickr::Group, @f.groups.first                   # find all active groups
-  # end
-  # 
   # def test_licenses
   #   assert_kind_of Array, @f.licenses                   # find all licenses
   # end
@@ -251,7 +266,7 @@ class TestFlickr < Test::Unit::TestCase
   # 
   
   
-  # ##### USER
+  # ##### Flickr::User tests
   # 
   def test_should_instantiate_user
     user = Flickr::User.new({ 'id' => 'foo123',
@@ -414,9 +429,9 @@ class TestFlickr < Test::Unit::TestCase
     user.contactsPhotos
   end
   
-  ##### PHOTO
+  # ##### Flickr::Photo tests
 
-  def test_should_store_initialize_from_id
+  def test_should_initialize_photo_from_id
     photo = Flickr::Photo.new("foo123")
     assert_equal "foo123", photo.id
   end
@@ -599,6 +614,56 @@ class TestFlickr < Test::Unit::TestCase
     photo.context
   end
   
+  # ##### Flickr::Group tests
+  # 
+  def test_should_instantiate_group_from_id
+     group = Flickr::Group.new("group1")
+     assert_equal "group1", group.id
+  end
+  
+  # tests old api for instantiating groups
+  def test_should_instantiate_group_from_id_and_api_key
+    f = flickr_client
+    Flickr.expects(:new).with("some_api_key").returns(f)
+    group = Flickr::Group.new("group1", "some_api_key")
+    assert_equal f, group.client
+  end
+  
+  # new api for instantiating groups
+  def test_should_instantiate_group_from_params_hash
+    group = Flickr::Group.new("id" => "group1", "name" => "Group One", "foo" => "bar")
+    assert_equal "group1", group.id
+    assert_equal "Group One", group.name
+    assert_equal "bar", group.instance_variable_get(:@foo)
+  end
+  
+  def test_should_use_flickr_client_passed_in_params_hash_when_instantiating_group
+    f = flickr_client
+    Flickr.expects(:new).never
+    group = Flickr::Group.new("id" => "group1", "name" => "Group One", "client" => f)
+    assert_equal f, group.client
+  end
+  
+  # def test_should_initialize_photo_from_id
+  #   photo = Flickr::Photo.new("foo123")
+  #   assert_equal "foo123", photo.id
+  # end
+  # 
+  # def test_should_save_extra_params_as_instance_variables
+  #   photo = Flickr::Photo.new('foo123', 'some_api_key', { 'key1' => 'value1', 'key2' => 'value2'})
+  #   assert_equal 'value1', photo.instance_variable_get(:@key1)
+  #   assert_equal 'value2', photo.instance_variable_get(:@key2)
+  # end
+  # 
+  # def test_should_be_able_to_access_instance_variables_through_hash_like_interface
+  #   photo = Flickr::Photo.new
+  #   photo.instance_variable_set(:@key1, 'value1')
+  #   assert_equal 'value1', photo['key1']
+  #   assert_equal 'value1', photo[:key1]
+  #   assert_nil photo[:key2]
+  #   assert_nil photo['key2']
+  # end
+  
   # ##### PHOTOSETS
   #  
   #  #def setup
@@ -674,15 +739,15 @@ class TestFlickr < Test::Unit::TestCase
            "key1" => "value1", 
            "key2" => "value2" },
          { "id" => "bar456", 
-            "key3" => "value3"}] } }
+           "key3" => "value3"}] } }
   end
   
   def dummy_single_photo_response
     { "photos" => 
       { "photo" => 
         { "id" => "foo123", 
-           "key1" => "value1", 
-           "key2" => "value2" } } }
+          "key1" => "value1", 
+          "key2" => "value2" } } }
   end
   
   def dummy_user_response
@@ -690,6 +755,17 @@ class TestFlickr < Test::Unit::TestCase
       { "nsid" => "12037949632@N01",
         "username" => "Stewart" }
     }
+  end
+  
+  def dummy_groups_response
+    { "groups" => 
+      { "group" => 
+        [{ "nsid" => "group1", 
+           "name" => "Group One", 
+           "eighteenplus" => "0" },
+         { "nsid" => "group2", 
+           "name" => "Group Two",
+           "eighteenplus" => "1"}] } }
   end
   
   def successful_xml_response

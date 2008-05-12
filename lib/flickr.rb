@@ -148,9 +148,12 @@ class Flickr
     return User.new("id" => user["nsid"], "username" => user["username"], "client" => self)
   end
 
-  # Implements flickr.groups.getActiveList
-  def groups
-    groups_getActiveList['activegroups']['group'].collect { |group| Group.new(group['nsid'], @api_key) }
+  # Implements flickr.groups.search
+  def groups(group_name, options={})
+    groups_search({"text" => group_name}.merge(options))['groups']['group'].collect { |group| Group.new( "id" => group['nsid'], 
+                                                                                                         "name" => group['name'], 
+                                                                                                         "eighteenplus" => group['eighteenplus'],
+                                                                                                         "client" => self) }
   end
   
   # Implements flickr.tags.getRelated
@@ -581,10 +584,14 @@ class Flickr
   class Group
     attr_reader :id, :client, :name, :members, :online, :privacy, :chatid, :chatcount, :url
     
-    def initialize(id=nil, api_key=nil)
-      @id = id
-      @api_key = api_key      
-      @client = Flickr.new @api_key
+    def initialize(id_or_params_hash=nil, api_key=nil)
+      if id_or_params_hash.is_a?(Hash)
+        id_or_params_hash.each { |k,v| self.instance_variable_set("@#{k}", v) } # convert extra_params into instance variables
+      else
+        @id = id_or_params_hash
+        @api_key = api_key      
+        @client = Flickr.new @api_key
+      end
     end
 
     # Implements flickr.groups.getInfo and flickr.urls.getGroup
