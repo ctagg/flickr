@@ -235,6 +235,14 @@ class TestFlickr < Test::Unit::TestCase
     assert_equal f, group.client
   end
   
+  def test_should_instantiate_groups_from_search_response_with_single_group_returned
+    f = flickr_client
+    f.stubs(:request).returns(dummy_single_group_response)
+    assert_kind_of Array, groups = f.groups("foo")
+    assert_equal 1, groups.size
+    assert_equal "group1", groups.first.id
+  end
+  
   # ##### DIRECT MODE
   # 
   # def test_test_echo
@@ -329,6 +337,13 @@ class TestFlickr < Test::Unit::TestCase
     assert_equal f, group.client
   end
   
+  def test_should_instantiate_users_public_groups_when_only_one_returned
+    f = flickr_client
+    f.stubs(:request).returns(dummy_single_group_response)
+    user = new_user( 'client' => f )
+    groups = user.groups
+    assert_equal 1, groups.size
+  end
   # def test_getInfo
   #   @u.getInfo
   #   assert_equal @username, @u.username
@@ -772,6 +787,14 @@ class TestFlickr < Test::Unit::TestCase
          { "nsid" => "group2", 
            "name" => "Group Two",
            "eighteenplus" => "1"}] } }
+  end
+  
+  def dummy_single_group_response
+    { "groups" => 
+      { "group" => 
+        { "nsid" => "group1", 
+           "name" => "Group One", 
+           "eighteenplus" => "0" } } }
   end
   
   def successful_xml_response

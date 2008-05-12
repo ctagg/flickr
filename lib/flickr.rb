@@ -150,10 +150,13 @@ class Flickr
 
   # Implements flickr.groups.search
   def groups(group_name, options={})
-    groups_search({"text" => group_name}.merge(options))['groups']['group'].collect { |group| Group.new( "id" => group['nsid'], 
-                                                                                                         "name" => group['name'], 
-                                                                                                         "eighteenplus" => group['eighteenplus'],
-                                                                                                         "client" => self) }
+    collection = groups_search({"text" => group_name}.merge(options))['groups']['group']
+    collection = [collection] if collection.is_a? Hash
+    
+    collection.collect { |group| Group.new( "id" => group['nsid'], 
+                                            "name" => group['name'], 
+                                            "eighteenplus" => group['eighteenplus'],
+                                            "client" => self) }
   end
   
   # Implements flickr.tags.getRelated
@@ -283,10 +286,12 @@ class Flickr
         
     # Implements flickr.people.getPublicGroups
     def groups
-      @client.people_getPublicGroups('user_id'=>@id)['groups']['group'].collect { |group| Group.new( "id" => group['nsid'], 
-                                                                                                     "name" => group['name'],
-                                                                                                     "eighteenplus" => group['eighteenplus'],
-                                                                                                     "client" => @client) }
+      collection = @client.people_getPublicGroups('user_id'=>@id)['groups']['group']
+      collection = [collection] if collection.is_a? Hash
+      collection.collect { |group| Group.new( "id" => group['nsid'], 
+                                           "name" => group['name'],
+                                           "eighteenplus" => group['eighteenplus'],
+                                           "client" => @client) }
     end
     
     # Implements flickr.people.getPublicPhotos. Options hash allows you to add
