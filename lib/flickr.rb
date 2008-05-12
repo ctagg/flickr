@@ -283,7 +283,10 @@ class Flickr
         
     # Implements flickr.people.getPublicGroups
     def groups
-      @client.people_getPublicGroups('user_id'=>@id)['groups']['group'].collect { |group| Group.new(group['nsid'], @api_key) }
+      @client.people_getPublicGroups('user_id'=>@id)['groups']['group'].collect { |group| Group.new( "id" => group['nsid'], 
+                                                                                                     "name" => group['name'],
+                                                                                                     "eighteenplus" => group['eighteenplus'],
+                                                                                                     "client" => @client) }
     end
     
     # Implements flickr.people.getPublicPhotos. Options hash allows you to add
@@ -582,7 +585,7 @@ class Flickr
   # flickr.groups.pools.getPhotos
   # flickr.groups.pools.remove
   class Group
-    attr_reader :id, :client, :name, :members, :online, :privacy, :chatid, :chatcount, :url
+    attr_reader :id, :client, :description, :name, :eighteenplus, :members, :online, :privacy, :url#, :chatid, :chatcount
     
     def initialize(id_or_params_hash=nil, api_key=nil)
       if id_or_params_hash.is_a?(Hash)
@@ -602,8 +605,8 @@ class Flickr
       @members = info['members']
       @online = info['online']
       @privacy = info['privacy']
-      @chatid = info['chatid']
-      @chatcount = info['chatcount']
+      # @chatid = info['chatid']
+      # @chatcount = info['chatcount']
       @url = @client.urls_getGroup('group_id'=>@id)['group']['url']
       self
     end

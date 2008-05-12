@@ -231,7 +231,7 @@ class TestFlickr < Test::Unit::TestCase
     assert_kind_of Flickr::Group, group = groups.first
     assert_equal "group1", group.id
     assert_equal "Group One", group.name
-    assert_equal "0", group.instance_variable_get(:@eighteenplus)
+    assert_equal "0", group.eighteenplus
     assert_equal f, group.client
   end
   
@@ -269,11 +269,7 @@ class TestFlickr < Test::Unit::TestCase
   # ##### Flickr::User tests
   # 
   def test_should_instantiate_user
-    user = Flickr::User.new({ 'id' => 'foo123',
-                              'username' => 'some_user',
-                              'name' => 'Some User', 
-                              'foo' => 'bar', 
-                              'auth_token' => 'foobar789'})
+    user = new_user
     assert_equal 'foo123', user.id
     assert_equal 'some_user', user.username
     assert_equal 'bar', user.instance_variable_get(:@foo) # should collect all other params up and store as instance variables
@@ -296,48 +292,41 @@ class TestFlickr < Test::Unit::TestCase
   def test_should_instantiate_new_client_when_instantiating_user_if_no_client_passed_in_params
     f = flickr_client
     Flickr.expects(:new).returns(f)
-    user = Flickr::User.new({ 'id' => 'foo123',
-                              'username' => 'some_user',
-                              'name' => 'Some User', 
-                              'auth_token' => 'foobar789',
-                              'shared_secret' => 'some_secret',
-                              'api_key' => 'an_api_key' })
+    user = new_user( 'api_key' => 'an_api_key' )
     assert_equal f, user.client
   end
   
   def test_should_not_instantiate_new_client_when_instantiating_user_if_client_passed_in_params
     f = flickr_client
     Flickr.expects(:new).never
-    user = Flickr::User.new({ 'id' => 'foo123',
-                              'username' => 'some_user',
-                              'name' => 'Some User',
-                              'client' => f })
-    assert_equal f, user.client
-  end
-  
-  def test_should_not_instantiate_new_client_if_existing_client_passed
-    f = flickr_client
-    Flickr.expects(:new).never
-    user = Flickr::User.new({ 'id' => 'foo123',
-                              'username' => 'some_user',
-                              'name' => 'Some User', 
-                              'api_key' => 'an_api_key',
-                              'client' => f })
+    user = new_user( 'client' => f )
     assert_equal f, user.client
   end
   
   def test_should_not_instantiate_client_if_no_api_key_passed
-    user = Flickr::User.new({ 'id' => 'foo123',
-                              'username' => 'some_user',
-                              'name' => 'Some User'})
+    Flickr.expects(:new).never
+    user = new_user
     assert_nil user.client
   end
   
-  def test_should_not_instantiate_new_client_when_instantiating_user_if_existing_client_passed_to_user_as_param
+  def test_should_get_users_public_groups
     f = flickr_client
-    Flickr.expects(:new).never
-    user = Flickr::User.new('client' => f)
-    assert_equal f, user.client
+    f.expects(:request).with("people.getPublicGroups", anything).returns(dummy_groups_response)
+    new_user( 'client' => f ).groups
+  end
+  
+  def test_should_instantiate_users_public_groups
+    f = flickr_client
+    f.stubs(:request).returns(dummy_groups_response)
+    user = new_user( 'client' => f )
+
+    groups = user.groups
+    assert_equal 2, groups.size
+    assert_kind_of Flickr::Group, group = groups.first
+    assert_equal "group1", group.id
+    assert_equal "Group One", group.name
+    assert_equal "0", group.eighteenplus
+    assert_equal f, group.client
   end
   
   # def test_getInfo
@@ -631,9 +620,10 @@ class TestFlickr < Test::Unit::TestCase
   
   # new api for instantiating groups
   def test_should_instantiate_group_from_params_hash
-    group = Flickr::Group.new("id" => "group1", "name" => "Group One", "foo" => "bar")
+    group = Flickr::Group.new("id" => "group1", "name" => "Group One", "eighteenplus" => "1", "foo" => "bar")
     assert_equal "group1", group.id
     assert_equal "Group One", group.name
+    assert_equal "1", group.eighteenplus
     assert_equal "bar", group.instance_variable_get(:@foo)
   end
   
@@ -642,6 +632,14 @@ class TestFlickr < Test::Unit::TestCase
     Flickr.expects(:new).never
     group = Flickr::Group.new("id" => "group1", "name" => "Group One", "client" => f)
     assert_equal f, group.client
+  end
+  
+  def test_should_provide_id_name_eighteenplus_description_members_online_privacy_reader_methods_for_group
+    g = Flickr::Group.new
+    %w(id name eighteenplus description members online privacy).each do |m|
+      g.instance_variable_set("@#{m}", "foo_#{m}")
+      assert_equal "foo_#{m}", g.send(m)
+    end
   end
   
   # def test_should_initialize_photo_from_id
@@ -719,6 +717,14 @@ class TestFlickr < Test::Unit::TestCase
     f
   end
   
+  def new_user(options={})
+    Flickr::User.new({ 'id' => 'foo123',
+                       'username' => 'some_user',
+                       'name' => 'Some User', 
+                       'foo' => 'bar', 
+                       'auth_token' => 'foobar789'}.merge(options))
+    
+  end
   def new_photo(options={})
     Flickr::Photo.new("1418878", 
                       "foo123",

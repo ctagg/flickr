@@ -1,6 +1,6 @@
 == 1.0.5 2008-05-12
 
-* 1 major enhancement:
+* 1 major change:
 	* Updated and refactored Flickr::Group class and Flickr#groups method to work with current Flickr API. Flickr#groups now searches for given group, rather than groups.getActiveList (which no longer exists as Flickr API call)
 * Minor enhancements:
 	* Tweaked internals so new client instance isn't created each time new object (e.g. photo, user) is created
