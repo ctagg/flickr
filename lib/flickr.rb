@@ -9,7 +9,7 @@
 #  require 'flickr'
 #  flickr = Flickr.new('some_flickr_api_key')    # create a flickr client (get an API key from http://www.flickr.com/services/api/)
 #  user = flickr.users('sco@scottraymond.net')   # lookup a user
-#  user.getInfo.name                             # get the user's name
+#  user.name                                     # get the user's name
 #  user.location                                 # and location
 #  user.photos                                   # grab their collection of Photo objects...
 #  user.groups                                   # ...the groups they're in...
@@ -18,8 +18,8 @@
 #  user.photosets                                # ...their photo sets...
 #  user.tags                                     # ...and their tags
 #  recentphotos = flickr.photos                  # get the 100 most recent public photos
-#  photo = recent.first                          # or very most recent one
-#  photo.getInfo.url                             # see its URL,
+#  photo = recentphotos.first                    # or very most recent one
+#  photo.url                                     # see its URL,
 #  photo.title                                   # title,
 #  photo.description                             # and description,
 #  photo.owner                                   # and its owner.
