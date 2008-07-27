@@ -120,11 +120,13 @@ class Flickr
 
   # Implements flickr.photos.getRecent and flickr.photos.search
   def photos(*criteria)
-    photos = (criteria[0]) ? photos_search(criteria[0]) : photos_getRecent
-    # At this point, search criterias with per_page => has structure
-    # {"photos => {"photo" => {...}}"} 
-    # While per_page values with > 1 have
-    # {"photos => {"photo" => [{...}]}"} 
+    criteria ? photos_search(*criteria) : recent
+  end
+
+  # flickr.photos.getRecent
+  # 100 newest photos from everyone
+  def recent
+    photos = request('photos.getRecent')
     collection = photos['photos']['photo']
     collection = [collection] if collection.is_a? Hash
     collection.collect { |photo| Photo.new(photo.delete('id'), @api_key, photo) }
