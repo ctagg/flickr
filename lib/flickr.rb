@@ -132,6 +132,7 @@ class Flickr
   def photos_search(params={})
     photos_request('photos.search', params)
   end
+  alias_method :search, :photos_search
   
   # Gets public photos with a given tag
   def tag(tag)
