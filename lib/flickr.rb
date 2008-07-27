@@ -195,7 +195,7 @@ class Flickr
   # acts like request but returns a list of Photo objects
   def photos_request(method, params={})
     photos = request(method, params)
-    collection = photos['photos']['photo']
+    collection = photos['photos']['photo'] || []
     collection = [collection] if collection.is_a? Hash
     collection.collect { |photo| Photo.new(photo.delete('id'), @api_key, photo) }
   end

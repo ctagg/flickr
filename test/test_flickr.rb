@@ -164,6 +164,13 @@ class TestFlickr < Test::Unit::TestCase
     assert_equal "foo123", photos.first.id
   end
 
+  def test_should_work_with_empty_result
+    f = flickr_client
+    f.expects(:request).returns(dummy_zero_photo_response)
+    photos = f.photos_request('some_method')
+    assert_equal [], photos
+  end
+
   def test_should_generate_login_url
     f = flickr_client
     f.expects(:signature_from).with('api_key' => 'some_api_key', 'perms' => 'write').returns('validsignature')
@@ -770,6 +777,10 @@ class TestFlickr < Test::Unit::TestCase
         { "id" => "foo123", 
           "key1" => "value1", 
           "key2" => "value2" } } }
+  end
+
+  def dummy_zero_photo_response
+    { "photos" => { "total" => 0 } }
   end
   
   def dummy_user_response
