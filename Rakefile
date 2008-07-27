@@ -7,7 +7,7 @@ require 'rubygems'
 task :default => [ :gem, :rdoc ]
 
 Rake::TestTask.new("test") { |t|
-  t.test_files = FileList['test*.rb']
+  t.test_files = FileList['test/test*.rb']
 }
 
 Rake::RDocTask.new { |rdoc|
