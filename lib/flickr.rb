@@ -432,8 +432,16 @@ class Flickr
 
     # the URL for the main photo page
     # if getInfo has already been called, this will return the pretty url
-    def url
-      @url || uri_for_photo_from_self
+    #
+    # for historical reasons, an optional size can be given
+    # 'Medium' returns the regular url; any other size returns a size page
+    # use size_url instead
+    def url(size = nil)
+      if size && size != 'Medium'
+        size_url(size)
+      else
+        @url || uri_for_photo_from_self
+      end
     end
 
     # the 'pretty' url for a photo

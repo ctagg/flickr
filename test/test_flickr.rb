@@ -533,7 +533,17 @@ class TestFlickr < Test::Unit::TestCase
     photo = new_photo
     assert_equal "http://www.flickr.com/photos/abc123/1418878", photo.url
   end
-  
+
+  def test_should_return_main_page_for_photo_flickr_page_when_medium_size_requested_as_per_previous_version
+    assert_equal "http://www.flickr.com/photos/abc123/1418878", new_photo.url('Medium')
+  end
+
+  def test_should_call_size_url_if_url_given_a_size
+    photo = new_photo
+    photo.expects(:size_url).with('Large')
+    photo.url('Large')
+  end
+
   def test_should_get_flickr_page_uri_by_building_from_self_if_possible_requesting_source_for_given_size
     photo = new_photo
     photo.expects(:uri_for_photo_from_self).with('Large').returns(true) # return any non-false-evaluating value so that sizes method isn't called
