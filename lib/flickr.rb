@@ -126,17 +126,11 @@ class Flickr
   # flickr.photos.getRecent
   # 100 newest photos from everyone
   def recent
-    photos = request('photos.getRecent')
-    collection = photos['photos']['photo']
-    collection = [collection] if collection.is_a? Hash
-    collection.collect { |photo| Photo.new(photo.delete('id'), @api_key, photo) }
+    photos_request('photos.getRecent')
   end
   
   def photos_search(params={})
-    photos = request('photos.search', params)
-    collection = photos['photos']['photo']
-    collection = [collection] if collection.is_a? Hash
-    collection.collect { |photo| Photo.new(photo.delete('id'), @api_key, photo) }
+    photos_request('photos.search', params)
   end
   
   # Gets public photos with a given tag
@@ -196,6 +190,14 @@ class Flickr
     response = XmlSimple.xml_in(http_get(url), { 'ForceArray' => false })
     raise response['err']['msg'] if response['stat'] != 'ok'
     response
+  end
+
+  # acts like request but returns a list of Photo objects
+  def photos_request(method, params={})
+    photos = request(method, params)
+    collection = photos['photos']['photo']
+    collection = [collection] if collection.is_a? Hash
+    collection.collect { |photo| Photo.new(photo.delete('id'), @api_key, photo) }
   end
   
   # Builds url for Flickr API REST request from given the flickr method name 
