@@ -538,7 +538,7 @@ class Flickr
         
     # Converts the Photo to a string by returning its title
     def to_s
-      getInfo.title
+      title
     end
     
     private
