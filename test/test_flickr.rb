@@ -165,18 +165,7 @@ class TestFlickr < Test::Unit::TestCase
   # photos method tests
   def test_should_get_recent_photos_if_no_params_for_photos
     f = flickr_client
-    f.expects(:photos_getRecent).returns({"photos" => {"photo" => []}})
-    f.photos
-  end
-  
-  def test_should_instantiate_recent_photos_with_id_and_all_params_returned_by_flickr
-    f = flickr_client
-    f.expects(:photos_getRecent).returns(dummy_photos_response)
-    Flickr::Photo.expects(:new).with("foo123", 
-                                     "some_api_key", { "key1" => "value1", 
-                                                       "key2" => "value2"})
-    Flickr::Photo.expects(:new).with("bar456", 
-                                     "some_api_key", { "key3" => "value3"})
+    f.expects(:photos_search)
     f.photos
   end
   
@@ -377,59 +366,30 @@ class TestFlickr < Test::Unit::TestCase
   # User#photos tests
   
   def test_should_get_users_public_photos
-    Flickr.expects(:new).at_least_once.returns(photos_response_stubber(:people_getPublicPhotos))
-    user = Flickr::User.new(nil, "some_user", nil, nil, "some_api_key")
+    client = mock
+    client.expects(:photos_request).with('people.getPublicPhotos', {'user_id' => 'some_id'}).returns([new_photo, new_photo])
+    Flickr.expects(:new).at_least_once.returns(client)
+
+    user = Flickr::User.new("some_id", "some_user", nil, nil, "some_api_key")
 
     photos = user.photos
     assert_equal 2, photos.size
     assert_kind_of Flickr::Photo, photos.first
   end
-  
-  def test_should_get_users_public_photos_when_only_one_returned
-    Flickr.expects(:new).at_least_once.returns(photos_response_stubber(:people_getPublicPhotos, dummy_single_photo_response))
-    user = Flickr::User.new(nil, "some_user", nil, nil, "some_api_key")
 
-    photos = user.photos
-    assert_equal 1, photos.size
-    assert_kind_of Flickr::Photo, photos.first
-  end
-  
-  def test_should_instantiate_photos_with_id_and_all_params_returned_by_query_and_username
-    Flickr.stubs(:new).returns(photos_response_stubber(:people_getPublicPhotos))
-    user = Flickr::User.new(nil, "some_user", nil, nil, "some_api_key")
-    Flickr::Photo.expects(:new).with("foo123", 
-                                     "some_api_key", { "key1" => "value1", 
-                                                       "key2" => "value2",
-                                                       "owner" => user})
-    Flickr::Photo.expects(:new).with("bar456", 
-                                     "some_api_key", { "key3" => "value3", 
-                                                       "owner" => user})
-    user.photos
-  end
-  
   def test_should_instantiate_favorite_photos_with_id_and_all_params_returned_by_query
-    user = Flickr::User.new(nil, "some_user", nil, nil, "some_api_key")
-    Flickr.stubs(:new).returns(photos_response_stubber(:favorites_getPublicList))
-    user = Flickr::User.new(nil, "some_user", nil, nil, "some_api_key")
-    Flickr::Photo.expects(:new).with("foo123", 
-                                     "some_api_key", { "key1" => "value1", 
-                                                       "key2" => "value2"})
-    Flickr::Photo.expects(:new).with("bar456", 
-                                     "some_api_key", { "key3" => "value3"})
-    
+    client = mock
+    client.expects(:photos_request).with('favorites.getPublicList', {'user_id' => 'some_id'})
+    Flickr.expects(:new).at_least_once.returns(client)
+    user = Flickr::User.new("some_id", "some_user", nil, nil, "some_api_key")
     user.favorites
   end
   
   def test_should_instantiate_contacts_photos_with_id_and_all_params_returned_by_query
-    user = Flickr::User.new(nil, "some_user", nil, nil, "some_api_key")
-    Flickr.stubs(:new).returns(photos_response_stubber(:photos_getContactsPublicPhotos))
-    user = Flickr::User.new(nil, "some_user", nil, nil, "some_api_key")
-    Flickr::Photo.expects(:new).with("foo123", 
-                                     "some_api_key", { "key1" => "value1", 
-                                                       "key2" => "value2"})
-    Flickr::Photo.expects(:new).with("bar456", 
-                                     "some_api_key", { "key3" => "value3"})
-    
+    client = mock
+    client.expects(:photos_request).with('photos.getContactsPublicPhotos', {'user_id' => 'some_id'})
+    Flickr.expects(:new).at_least_once.returns(client)
+    user = Flickr::User.new('some_id', "some_user", nil, nil, "some_api_key")
     user.contactsPhotos
   end
   
@@ -468,7 +428,7 @@ class TestFlickr < Test::Unit::TestCase
     photo = new_photo("owner" => nil)
     # stubbing private methods causes problems so we mock client method, which is what Photo#getInfo users to make API call
     Flickr.any_instance.expects(:photos_getInfo).returns('photo' => { 'owner'=>{'nsid'=>'abc123', 'username'=>'SomeUserName', 'realname'=>"", 'location'=>''}, 
-                                                                      'notes' => {}}) 
+                                                                      'notes' => {}, 'urls' => {'url' => {'content' => 'http://prettyurl'}}}) 
 
     owner = photo.owner
     assert_kind_of Flickr::User, owner
@@ -571,25 +531,20 @@ class TestFlickr < Test::Unit::TestCase
   
   def test_should_get_uri_for_photo_flickr_page
     photo = new_photo
-    assert_equal "http://flickr.com/photos/some_user/1418878", photo.url
-  end
-  
-  def test_should_return_main_page_for_photo_flickr_page_when_medium_size_requested_as_per_previous_version
-    photo = new_photo
-    assert_equal "http://flickr.com/photos/some_user/1418878", photo.url("Medium")
+    assert_equal "http://www.flickr.com/photos/abc123/1418878", photo.url
   end
   
   def test_should_get_flickr_page_uri_by_building_from_self_if_possible_requesting_source_for_given_size
     photo = new_photo
     photo.expects(:uri_for_photo_from_self).with('Large').returns(true) # return any non-false-evaluating value so that sizes method isn't called
-    photo.url('Large')
+    photo.size_url('Large')
   end
   
   def test_should_get_flickr_page_uri_by_calling_sizes_method_if_no_luck_building_uri
     photo = new_photo
     photo.stubs(:uri_for_photo_from_self) # ...and hence returns nil
     photo.expects(:sizes).with('Large').returns({})
-    photo.url('Large')
+    photo.size_url('Large')
   end
   
   # Photo#context tests
