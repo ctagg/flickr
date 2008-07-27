@@ -301,9 +301,7 @@ class Flickr
     # extra restrictions as per flickr.people.getPublicPhotos docs, e.g. 
     # user.photos('per_page' => '25', 'extras' => 'date_taken')
     def photos(options={})
-      collection = @client.people_getPublicPhotos({'user_id'=>@id}.merge(options))['photos']['photo']
-      collection = [collection] if collection.is_a? Hash
-      collection.collect { |photo| Photo.new(photo.delete('id'), @api_key, photo.merge('owner' => self)) }
+      @client.photos_request('people.getPublicPhotos', {'user_id' => @id}.merge(options))
       # what about non-public photos?
     end
 
