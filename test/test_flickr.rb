@@ -127,7 +127,43 @@ class TestFlickr < Test::Unit::TestCase
     
     assert_equal expected_response, f.send(:request, 'some_method', 'foo' => 'bar')
   end
-  
+
+  # photos_request tests
+  def test_should_pass_photos_request_params_to_request
+    f = flickr_client
+    f.expects(:request).with('flickr.method', :one => 1, :two => "2").returns(dummy_photos_response)
+    f.photos_request(        'flickr.method', :one => 1, :two => "2")
+  end
+
+  def test_should_instantiate_recent_photos_with_id_and_all_params_returned_by_flickr
+    f = flickr_client
+    f.expects(:request).returns(dummy_photos_response)
+    Flickr::Photo.expects(:new).with("foo123",
+                                     "some_api_key", { "key1" => "value1",
+                                                       "key2" => "value2"})
+    Flickr::Photo.expects(:new).with("bar456",
+                                     "some_api_key", { "key3" => "value3"})
+    photos = f.photos_request('some_method')
+  end
+
+  def test_should_return_list_of_photos
+    f = flickr_client
+    f.expects(:request).returns(dummy_photos_response)
+    photos = f.photos_request('some_method')
+    assert_equal 2, photos.size
+    assert_kind_of Flickr::Photo, photos.first
+    assert_equal "foo123", photos.first.id
+  end
+
+  def test_should_work_with_single_result
+    f = flickr_client
+    f.expects(:request).returns(dummy_single_photo_response)
+    photos = f.photos_request('some_method')
+    assert_equal 1, photos.size
+    assert_kind_of Flickr::Photo, photos.first
+    assert_equal "foo123", photos.first.id
+  end
+
   def test_should_generate_login_url
     f = flickr_client
     f.expects(:signature_from).with('api_key' => 'some_api_key', 'perms' => 'write').returns('validsignature')
