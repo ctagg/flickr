@@ -423,18 +423,25 @@ class Flickr
       @notes.nil? ? getInfo.notes : @notes
     end
 
-    # Returns the URL for the photo page (default or any specified size).
-    # NB This method returns the main page for the photo by default. However,
-    # it also returns this page for "Medium" size images, instead of the 
-    # specific page for the "Medium" size, which should be 
-    # http://www.flickr.com/photos/#{username}/#{photo_id}/sizes/m/ 
-    # It may make sense to correct this in future
-    def url(size='Medium')
-      if size=='Medium'
-        "http://flickr.com/photos/#{owner.username}/#{@id}"
-      else
-        uri_for_photo_from_self(size) || sizes(size)['url']
-      end
+    # Returns the URL for the photo size page
+    # defaults to 'Medium'
+    # other valid sizes are in the VALID_SIZES hash
+    def size_url(size='Medium')
+      uri_for_photo_from_self(size) || sizes(size)['url']
+    end
+
+    # the URL for the main photo page
+    # if getInfo has already been called, this will return the pretty url
+    def url
+      @uri || uri_for_photo_from_self
+    end
+
+    # the 'pretty' url for a photo
+    # (if the user has set up a custom name)
+    # eg, http://flickr.com/photos/granth/2584402507/ instead of
+    #     http://flickr.com/photos/23386158@N00/2584402507/
+    def pretty_url
+      @url || getInfo.url
     end
 
     # Returns the URL for the image (default or any specified size)
@@ -547,6 +554,7 @@ class Flickr
         @rotation = info['rotation']
         @description = info['description']
         @notes = info['notes']['note']#.collect { |note| Note.new(note.id) }
+        @url = info['urls']['url']['content'] # assumes only one url
         self
       end
       
