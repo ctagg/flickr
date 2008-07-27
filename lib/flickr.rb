@@ -178,7 +178,6 @@ class Flickr
     request(method_id.id2name.gsub(/_/, '.'), params)
   end
 
-  protected
   # Does an HTTP GET on a given URL and returns the response body
   def http_get(url)
     Net::HTTP.get_response(URI.parse(url)).body.to_s
