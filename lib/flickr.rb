@@ -316,10 +316,9 @@ class Flickr
       #or
     end
     
-    # Implements flickr.favorites.getPublicList and flickr.favorites.getList
+    # Implements flickr.favorites.getPublicList
     def favorites
-      @client.favorites_getPublicList('user_id'=>@id)['photos']['photo'].collect { |photo| Photo.new(photo.delete('id'), @api_key, photo) }
-      #or
+      @client.photos_request('favorites.getPublicList', 'user_id' => @id)
     end
     
     # Implements flickr.photosets.getList
@@ -334,9 +333,7 @@ class Flickr
 
     # Implements flickr.photos.getContactsPublicPhotos and flickr.photos.getContactsPhotos
     def contactsPhotos
-      @client.photos_getContactsPublicPhotos('user_id'=>@id)['photos']['photo'].collect { |photo| Photo.new(photo.delete('id'), @api_key, photo) }
-      # or
-      #@client.photos_getContactsPhotos['photos']['photo'].collect { |photo| Photo.new(photo['id'], @api_key) }
+      @client.photos_request('photos.getContactsPublicPhotos', 'user_id' => @id)
     end
     
     def to_s
