@@ -433,7 +433,7 @@ class Flickr
     # the URL for the main photo page
     # if getInfo has already been called, this will return the pretty url
     def url
-      @uri || uri_for_photo_from_self
+      @url || uri_for_photo_from_self
     end
 
     # the 'pretty' url for a photo
@@ -441,7 +441,7 @@ class Flickr
     # eg, http://flickr.com/photos/granth/2584402507/ instead of
     #     http://flickr.com/photos/23386158@N00/2584402507/
     def pretty_url
-      @url || getInfo.url
+      @url || getInfo.pretty_url
     end
 
     # Returns the URL for the image (default or any specified size)
