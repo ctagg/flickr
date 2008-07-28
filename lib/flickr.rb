@@ -427,7 +427,6 @@ class Flickr
     # defaults to 'Medium'
     # other valid sizes are in the VALID_SIZES hash
     def size_url(size='Medium')
-      size = normalize_size(size)
       uri_for_photo_from_self(size) || sizes(size)['url']
     end
 
@@ -460,7 +459,6 @@ class Flickr
 
     # Returns the URL for the image (default or any specified size)
     def source(size='Medium')
-      size = normalize_size(size)
       image_source_uri_from_self(size) || sizes(size)['source']
     end
 
