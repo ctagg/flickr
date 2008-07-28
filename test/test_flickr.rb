@@ -528,6 +528,18 @@ class TestFlickr < Test::Unit::TestCase
   def test_should_return_nil_for_image_source_uri_if_missing_required_attributes
     assert_nil Flickr::Photo.new("1418878", nil, "farm" => "1").send(:image_source_uri_from_self)
   end
+
+  def test_image_source_uri_from_self_should_normalize_size
+    photo = new_photo
+    assert_equal photo.send(:image_source_uri_from_self, 'Large'),
+                 photo.send(:image_source_uri_from_self, :large)
+  end
+
+  def test_uri_for_photo_from_self_should_normalize_size
+    photo = new_photo
+    assert_equal photo.send(:uri_for_photo_from_self, 'Large'),
+                 photo.send(:uri_for_photo_from_self, :large)
+  end
   
   def test_should_get_source_uri_by_building_from_self_if_possible
     photo = Flickr::Photo.new
@@ -598,6 +610,41 @@ class TestFlickr < Test::Unit::TestCase
     photo.stubs(:uri_for_photo_from_self) # ...and hence returns nil
     photo.expects(:sizes).with('Large').returns({})
     photo.size_url('Large')
+  end
+
+  def test_should_allow_size_to_be_lowercase_or_symbol
+    photo = new_photo
+    assert_equal photo.normalize_size('Small'), 'Small'
+    assert_equal photo.normalize_size('small'), 'Small'
+    assert_equal photo.normalize_size(:small),  'Small'
+    assert_equal photo.normalize_size(:Small),  'Small'
+    assert_equal photo.normalize_size('smAlL'), 'Small'
+
+    assert_equal photo.normalize_size(""), ""
+    assert_nil photo.normalize_size(nil)
+  end
+
+  def test_size_url_should_normalize_size
+    photo = new_photo
+    assert_equal photo.size_url('Large'), photo.size_url(:large)
+  end
+
+  def test_url_should_normalize_size
+    photo = new_photo
+    assert_equal photo.url('Medium'), photo.url(:medium)
+    assert_equal photo.url('Small'),  photo.url('small')
+  end
+
+  def test_source_should_normalize_size
+    photo = new_photo
+    assert_equal photo.source('Large'), photo.source(:large)
+  end
+
+  def test_sizes_should_normalize_size
+    sizes = {'sizes' => {'size' => [{'label' => 'Small'}, {'label' => 'Large'}]}}
+    photo = new_photo
+    photo.client.expects(:photos_getSizes).at_least_once.returns(sizes)
+    assert_equal photo.sizes('Large'), photo.sizes(:large)
   end
   
   # Photo#context tests

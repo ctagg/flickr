@@ -427,7 +427,13 @@ class Flickr
     # defaults to 'Medium'
     # other valid sizes are in the VALID_SIZES hash
     def size_url(size='Medium')
+      size = normalize_size(size)
       uri_for_photo_from_self(size) || sizes(size)['url']
+    end
+
+    # converts string or symbol size to a capitalized string
+    def normalize_size(size)
+      size ? size.to_s.capitalize : size
     end
 
     # the URL for the main photo page
@@ -437,7 +443,7 @@ class Flickr
     # 'Medium' returns the regular url; any other size returns a size page
     # use size_url instead
     def url(size = nil)
-      if size && size != 'Medium'
+      if normalize_size(size) != 'Medium'
         size_url(size)
       else
         @url || uri_for_photo_from_self
@@ -454,6 +460,7 @@ class Flickr
 
     # Returns the URL for the image (default or any specified size)
     def source(size='Medium')
+      size = normalize_size(size)
       image_source_uri_from_self(size) || sizes(size)['source']
     end
 
@@ -487,6 +494,7 @@ class Flickr
 
     # Implements flickr.photos.getSizes
     def sizes(size=nil)
+      size = normalize_size(size)
       sizes = @client.photos_getSizes('photo_id'=>@id)['sizes']['size']
       sizes = sizes.find{|asize| asize['label']==size} if size
       return sizes
@@ -577,7 +585,7 @@ class Flickr
       # TODO: Handle "Original" size
       def image_source_uri_from_self(size=nil)
         return unless @farm&&@server&&@id&&@secret
-        s_size = VALID_SIZES[size] # get the short letters array corresponding to the size
+        s_size = VALID_SIZES[normalize_size(size)] # get the short letters array corresponding to the size
         s_size = s_size&&s_size[0] # the first element of this array is used to build the source uri
         if s_size.nil?
           "http://farm#{@farm}.static.flickr.com/#{@server}/#{@id}_#{@secret}.jpg"
@@ -592,6 +600,7 @@ class Flickr
       # TODO: Handle "Original" size
       def uri_for_photo_from_self(size=nil)
         return unless @owner&&@id
+        size = normalize_size(size)
         s_size = VALID_SIZES[size] # get the short letters array corresponding to the size
         s_size = s_size&&s_size[1] # the second element of this array is used to build the uri of the flickr page for this size
         "http://www.flickr.com/photos/#{owner.id}/#{@id}" + (s_size ? "/sizes/#{s_size}/" : "")
