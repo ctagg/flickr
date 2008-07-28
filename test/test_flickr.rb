@@ -804,10 +804,6 @@ class TestFlickr < Test::Unit::TestCase
                         "owner" => Flickr::User.new("abc123", "some_user", nil, nil, "some_api_key") }.merge(options))
   end
   
-  def photos_response_stubber(method_name, response = dummy_photos_response)
-    stub(method_name => response)
-  end
-  
   def dummy_photos_response
     { "photos" => 
       { "photo" => 
