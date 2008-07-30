@@ -17,27 +17,27 @@
 == 1.0.5 2008-05-12
 
 * 1 major change:
-	* Updated and refactored Flickr::Group class and Flickr#groups method to work with current Flickr API. Flickr#groups now searches for given group, rather than groups.getActiveList (which no longer exists as Flickr API call)
+  * Updated and refactored Flickr::Group class and Flickr#groups method to work with current Flickr API. Flickr#groups now searches for given group, rather than groups.getActiveList (which no longer exists as Flickr API call)
 * Minor enhancements:
-	* Tweaked internals so new client instance isn't created each time new object (e.g. photo, user) is created
-	* Improved test coverage
-	
+  * Tweaked internals so new client instance isn't created each time new object (e.g. photo, user) is created
+  * Improved test coverage
+  
 == 1.0.4 2008-05-11
 
 * 1 major enhancement:
   * Added authentication facility as per current Flickr API
 * 3 minor enhancements:
-	* Improved test suite
-	* Improved API for creating Flickr objects (old one still works)
-	* Protected methods that are only used internally (e.g. request, request_url)
+  * Improved test suite
+  * Improved API for creating Flickr objects (old one still works)
+  * Protected methods that are only used internally (e.g. request, request_url)
 
 == 1.0.3 2008-04-18
 
 * Various bugfixes:
-	* User instantiation was broken (wrong number of params passed)
-	* Instantiating photos failed in several places if single photo returned
-	* Photosets#getInfo would always fail as the parameter name should be photoset_id, not photosets_id
-	* Removed call to flickr.people.getOnlineList in Flickr#users as that call is no longer in the Flickr API
+  * User instantiation was broken (wrong number of params passed)
+  * Instantiating photos failed in several places if single photo returned
+  * Photosets#getInfo would always fail as the parameter name should be photoset_id, not photosets_id
+  * Removed call to flickr.people.getOnlineList in Flickr#users as that call is no longer in the Flickr API
 * Performance improvements:
-	* Url and image source uri now generated without a call to the Flickr API, as per the Flickr API docs
-	
+  * Url and image source uri now generated without a call to the Flickr API, as per the Flickr API docs
+  
