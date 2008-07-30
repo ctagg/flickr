@@ -774,7 +774,19 @@ class TestFlickr < Test::Unit::TestCase
   #  def test_photosets_orderSets
   #    assert_equal @f.photosets_orderSets('photoset_ids'=>@photoset_id)['stat'], 'ok'
   #  end
-    
+
+  def test_related_tags
+    f = flickr_client
+    tags_response = {
+      "tags" => {
+        "tag"    => [ "zoo", "animal" ],
+        "source" => "monkey",
+      },
+      "stat" => "ok",
+    }
+    f.expects(:tags_getRelated).with('tag' => 'monkey').returns(tags_response)
+    assert_equal f.related_tags('monkey'), %w(zoo animal)
+  end
 
   private
   def flickr_client

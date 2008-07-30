@@ -2,6 +2,7 @@
 * Bugfixes:
   * fixed Flickr#photos when used for searching
   * fixed Flickr::Photo#url to not use usernames (if the user changes their username, the url will wrong)
+  * fixed Flickr#related_tags
   * Flickr::Photo#to_s was making unnecessary API calls
   * fixed 'test' Rake task
   * fixed 'gem' Rake task

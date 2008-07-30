@@ -158,7 +158,7 @@ class Flickr
   
   # Implements flickr.tags.getRelated
   def related_tags(tag)
-    tags_getRelated('tag_id'=>tag)['tags']['tag']
+    tags_getRelated('tag'=>tag)['tags']['tag']
   end
   
   # Implements flickr.photos.licenses.getInfo
