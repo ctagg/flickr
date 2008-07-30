@@ -4,6 +4,7 @@
   * fixed Flickr::Photo#url to not use usernames (if the user changes their username, the url will wrong)
   * Flickr::Photo#to_s was making unnecessary API calls
   * fixed 'test' Rake task
+  * fixed 'gem' Rake task
 * Minor enhancements:
   * added Flickr#search as an alias for Flickr#photos in its search mode
   * added Flickr#recent as an alias for Flickr#photos for recent photos
