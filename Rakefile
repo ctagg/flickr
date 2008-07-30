@@ -22,7 +22,7 @@ spec = Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.summary = "An insanely easy interface to the Flickr photo-sharing service. By Scott Raymond. Maintainer: Patrick Plattes"
   s.requirements << 'Flickr developers API key'
-  s.files = Dir.glob("**/*").delete_if { |item| item.include?("svn") }
+  s.files = Dir.glob("**/*").delete_if { |item| item.include?("svn") || item[/^pkg/] }
   s.require_path = 'lib'
   s.author = "Scott Raymond, Patrick Plattes"
   s.email = "patrick@erdbeere.net"
