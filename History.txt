@@ -1,3 +1,17 @@
+== 1.0.6 2008-07-30
+* Bugfixes:
+  * fixed Flickr#photos when used for searching
+  * fixed Flickr::Photo#url to not use usernames (if the user changes their username, the url will wrong)
+  * Flickr::Photo#to_s was making unnecessary API calls
+  * fixed 'test' Rake task
+* Minor enhancements:
+  * added Flickr#search as an alias for Flickr#photos in its search mode
+  * added Flickr#recent as an alias for Flickr#photos for recent photos
+  * added Flickr::Photo#pretty_url for the URL that includes a username if present
+  * added Flickr::Photo#size_url which is like url except 'Medium' works the same as other sizes
+  * allow lowercase ('medium') and symbol (:medium) forms for sizes
+  * internal code cleanup
+
 == 1.0.5 2008-05-12
 
 * 1 major change:

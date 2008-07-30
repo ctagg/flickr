@@ -18,7 +18,7 @@ Rake::RDocTask.new { |rdoc|
 spec = Gem::Specification.new do |s|
   s.add_dependency('xml-simple', '>= 1.0.7')
   s.name = 'flickr'
-  s.version = "1.0.5"
+  s.version = "1.0.6"
   s.platform = Gem::Platform::RUBY
   s.summary = "An insanely easy interface to the Flickr photo-sharing service. By Scott Raymond. Maintainer: Patrick Plattes"
   s.requirements << 'Flickr developers API key'
