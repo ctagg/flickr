@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.email = %q{patrick@erdbeere.net}
   s.files = ["History.txt", "LICENSE", "README.txt", "TODO", "lib/flickr.rb", "test/test_flickr.rb"]
   s.homepage = %q{http://flickr.rubyforge.org/}
-  s.require_paths = ["."]
+  s.require_paths = ["lib"]
   s.requirements = ["Flickr developers API key"]
   s.rubyforge_project = %q{flickr}
   s.rubygems_version = %q{1.2.0}
