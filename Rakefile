@@ -29,7 +29,13 @@ spec = Gem::Specification.new do |s|
   s.rubyforge_project = "flickr"
   s.homepage = "http://flickr.rubyforge.org/"
 end
+
 Rake::GemPackageTask.new(spec) do |pkg|
   pkg.need_zip = true
   pkg.need_tar = true
+end
+
+task "Dump Gemspec file"
+task :debug do
+  puts spec.to_ruby
 end
