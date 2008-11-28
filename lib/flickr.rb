@@ -192,12 +192,10 @@ class Flickr
     response
   end
 
-  # acts like request but returns a list of Photo objects
+  # acts like request but returns a PhotoCollection (a list of Photo objects)
   def photos_request(method, params={})
     photos = request(method, params)
-    collection = photos['photos']['photo'] || []
-    collection = [collection] if collection.is_a? Hash
-    collection.collect { |photo| Photo.new(photo.delete('id'), @api_key, photo) }
+    PhotoCollection.new(photos, @api_key)
   end
   
   # Builds url for Flickr API REST request from given the flickr method name 
@@ -216,6 +214,22 @@ class Flickr
     return unless @shared_secret # don't both getting signature if no shared_secret
     request_str = params.reject {|k,v| v.nil?}.collect {|p| "#{p[0].to_s}#{p[1]}"}.sort.join # build key value pairs, sort in alpha order then join them, ignoring those with nil value
     return Digest::MD5.hexdigest("#{@shared_secret}#{request_str}")
+  end
+  
+  # A collection of photos is returned as a PhotoCollection, a subclass of Array.
+  # This allows us to retain the pagination info returned by Flickr and make it
+  # accessible in a friendly way
+  class PhotoCollection < Array
+    attr_reader :page, :pages, :perpage, :total
+    
+    # builds a PhotoCollection from given params, such as those returned from 
+    # photos.search API call
+    def initialize(photos_api_response={}, api_key=nil)
+      [ "page", "pages", "perpage", "total" ].each { |i| instance_variable_set("@#{i}", photos_api_response["photos"][i])} 
+      collection = photos_api_response['photos']['photo'] || []
+      collection = [collection] if collection.is_a? Hash
+      collection.each { |photo| self << Photo.new(photo.delete('id'), api_key, photo) }
+    end
   end
   
   # Todo:
@@ -281,13 +295,23 @@ class Flickr
     def firstdatetaken
       @firstdatetaken.nil? ? getInfo.firstdatetaken : @firstdatetaken
     end
+    
+    # Builds url for user's photos page as per 
+    # http://www.flickr.com/services/api/misc.urls.html
     def photos_url
-      @photos_url.nil? ? getInfo.photos_url : @photos_url
-    end
-    def url
-      @url.nil? ? getInfo.url : @url
+      "http://www.flickr.com/photos/#{id}/"
     end
         
+    # Builds url for user's profile page as per 
+    # http://www.flickr.com/services/api/misc.urls.html
+    def url
+      "http://www.flickr.com/people/#{id}/"
+    end
+    
+    def pretty_url
+      @pretty_url ||= @client.urls_getUserProfile('user_id'=>@id)['user']['url']
+    end
+    
     # Implements flickr.people.getPublicGroups
     def groups
       collection = @client.people_getPublicGroups('user_id'=>@id)['groups']['group']
@@ -352,8 +376,6 @@ class Flickr
         @count = info['photos']['count']
         @firstdate = info['photos']['firstdate']
         @firstdatetaken = info['photos']['firstdatetaken']
-        @photos_url = @client.urls_getUserPhotos('user_id'=>@id)['user']['url']
-        @url = @client.urls_getUserProfile('user_id'=>@id)['user']['url']
         self
       end
 
@@ -381,7 +403,7 @@ class Flickr
     end
     
     def title
-      @title.nil? ? getInfo.title : @title
+      @title.nil? ? getInfo("title") : @title
     end
     
     # Returns the owner of the photo as a Flickr::User. If we have no info 
@@ -395,32 +417,32 @@ class Flickr
       when String
         @owner = Flickr::User.new(@owner, nil, nil, nil, @api_key)
       else
-        getInfo.owner
+        getInfo("owner")
       end
     end
 
     def server
-      @server.nil? ? getInfo.server : @server
+      @server.nil? ? getInfo("server") : @server
     end
 
     def isfavorite
-      @isfavorite.nil? ? getInfo.isfavorite : @isfavorite
+      @isfavorite.nil? ? getInfo("isfavorite") : @isfavorite
     end
 
     def license
-      @license.nil? ? getInfo.license : @license
+      @license.nil? ? getInfo("license") : @license
     end
 
     def rotation
-      @rotation.nil? ? getInfo.rotation : @rotation
+      @rotation.nil? ? getInfo("rotation") : @rotation
     end
 
     def description
-      @description.nil? ? getInfo.description : @description
+      @description || getInfo("description")
     end
 
     def notes
-      @notes.nil? ? getInfo.notes : @notes
+      @notes.nil? ? getInfo("notes") : @notes
     end
 
     # Returns the URL for the photo size page
@@ -454,7 +476,7 @@ class Flickr
     # eg, http://flickr.com/photos/granth/2584402507/ instead of
     #     http://flickr.com/photos/23386158@N00/2584402507/
     def pretty_url
-      @url || getInfo.pretty_url
+      @url || getInfo("pretty_url")
     end
 
     # Returns the URL for the image (default or any specified size)
@@ -558,18 +580,16 @@ class Flickr
     private
 
       # Implements flickr.photos.getInfo
-      def getInfo
+      def getInfo(attrib="")
+        return instance_variable_get("@#{attrib}") if @got_info
         info = @client.photos_getInfo('photo_id'=>@id)['photo']
-        @title = info['title']
+        @got_info = true
+        info.each { |k,v| instance_variable_set("@#{k}", v)}
         @owner = User.new(info['owner']['nsid'], info['owner']['username'], nil, nil, @api_key)
-        @server = info['server']
-        @isfavorite = info['isfavorite']
-        @license = info['license']
-        @rotation = info['rotation']
-        @description = info['description']
+        @tags = info['tags']['tag']
         @notes = info['notes']['note']#.collect { |note| Note.new(note.id) }
         @url = info['urls']['url']['content'] # assumes only one url
-        self
+        instance_variable_get("@#{attrib}")
       end
       
       # Builds source uri of image from params (often returned from other 

@@ -145,8 +145,25 @@ class TestFlickr < Test::Unit::TestCase
                                      "some_api_key", { "key3" => "value3"})
     photos = f.photos_request('some_method')
   end
-
-  def test_should_return_list_of_photos
+  
+  def test_should_parse_photos_response_into_flickr_photo_collection
+    f = flickr_client
+    f.expects(:request).returns(dummy_photos_response)
+    assert_kind_of Flickr::PhotoCollection, f.photos_request('some_method')
+  end
+  
+  def test_should_store_pagination_info_in_photo_collection
+    f = flickr_client
+    f.expects(:request).returns(dummy_photos_response)
+    photos = f.photos_request('some_method')
+    
+    assert_equal "3", photos.page
+    assert_equal "5", photos.pages
+    assert_equal "10", photos.perpage
+    assert_equal "42", photos.total
+  end
+  
+  def test_should_return_collection_of_photos
     f = flickr_client
     f.expects(:request).returns(dummy_photos_response)
     photos = f.photos_request('some_method')
@@ -349,6 +366,32 @@ class TestFlickr < Test::Unit::TestCase
     assert_nil user.client
   end
   
+  def test_should_build_url_for_users_profile_page_using_user_id
+    Flickr.any_instance.expects(:http_get).never
+    assert_equal "http://www.flickr.com/people/foo123/", new_user.url
+  end
+  
+  def test_should_build_url_for_users_photos_page_using_user_id
+    Flickr.any_instance.expects(:http_get).never
+    assert_equal "http://www.flickr.com/photos/foo123/", new_user.photos_url
+  end
+  
+  def test_should_get_pretty_url_for_users_profile_page
+    f = flickr_client
+    f.expects(:urls_getUserProfile).returns({"user" => {"nsid" => "bar456", "url" => "http://www.flickr.com/people/killer_bob/"}})
+    
+    assert_equal "http://www.flickr.com/people/killer_bob/", new_user( 'client' => f ).pretty_url
+  end
+  
+  def test_should_cache_pretty_url_for_users_profile_page
+    f = flickr_client
+    user = new_user( 'client' => f )
+    f.expects(:urls_getUserProfile).returns({"user" => {"nsid" => "bar456", "url" => "http://www.flickr.com/people/killer_bob/"}}) # expects only one call
+    
+    user.pretty_url
+    user.pretty_url
+  end
+  
   def test_should_get_users_public_groups
     f = flickr_client
     f.expects(:request).with("people.getPublicGroups", anything).returns(dummy_groups_response)
@@ -458,6 +501,59 @@ class TestFlickr < Test::Unit::TestCase
     assert_nil photo['key2']
   end
   
+  def test_should_get_and_store_other_info_for_photo
+    Flickr.any_instance.stubs(:http_get).returns(photo_info_xml_response)
+    photo = Flickr::Photo.new('foo123', 'some_api_key')
+    
+    assert_equal "1964 120 amazon estate", photo.title # calling #title method triggers getting of info
+    assert_equal "1964 120 amazon estate", photo.instance_variable_get(:@title)    
+    assert_equal "3142", photo.instance_variable_get(:@server)
+    assert_equal "ae75bd3111", photo.instance_variable_get(:@secret)
+    assert_equal "4", photo.instance_variable_get(:@farm)
+    assert_equal "1204145093", photo.instance_variable_get(:@dateuploaded)
+    assert_equal "photo", photo.instance_variable_get(:@media)
+    assert_equal "0", photo.instance_variable_get(:@isfavorite)
+    assert_equal "0", photo.instance_variable_get(:@license)
+    assert_equal "0", photo.instance_variable_get(:@rotation)
+    assert_equal "1964 Volvo 120 amazon estate spotted in derbyshire.", photo.instance_variable_get(:@description)
+    assert_equal( { "w" => "50",
+                    "x" => "10",
+                    "y" => "10",
+                    "authorname" => "Bees",
+                    "author" => "12037949754@N01",
+                    "id" => "313",
+                    "content" => "foo",
+                    "h" => "50" }, photo.instance_variable_get(:@notes))
+    assert_equal "http://www.flickr.com/photos/rootes_arrow/2296968304/", photo.instance_variable_get(:@url)
+    assert_equal [ { "id" => "9377979-2296968304-2228", "author" => "9383319@N05", "raw" => "volvo", "machine_tag" => "0", "content" => "volvo" },
+                   { "id" => "9377979-2296968304-2229", "author" => "9383319@N06", "raw" => "amazon", "machine_tag" => "0", "content" => "amazon"
+                   } ], photo.instance_variable_get(:@tags)
+    assert_equal "1", photo.instance_variable_get(:@comments)
+    assert_kind_of Flickr::User, owner = photo.instance_variable_get(:@owner)
+    assert_equal "Rootes_arrow_1725", owner.username
+  end
+  
+  def test_should_get_and_other_info_for_photo_when_some_attributes_missing
+    Flickr.any_instance.stubs(:http_get).returns(sparse_photo_info_xml_response)
+    photo = Flickr::Photo.new('foo123', 'some_api_key')
+    
+    assert_equal "1964 120 amazon estate", photo.title # calling #title method triggers getting of info
+    assert_equal "1964 120 amazon estate", photo.instance_variable_get(:@title)
+    assert_equal( {}, photo.instance_variable_get(:@description))
+    assert_nil photo.instance_variable_get(:@notes)
+    assert_nil photo.instance_variable_get(:@tags)
+    assert_equal "1", photo.instance_variable_get(:@comments)
+  end
+  
+  def test_should_not_get_info_more_than_once
+    Flickr.any_instance.expects(:http_get).returns(photo_info_xml_response) # expects only one call
+    photo = Flickr::Photo.new('foo123', 'some_api_key')
+    
+    photo.description # calling #description method triggers getting of info
+    photo.instance_variable_set(:@description, nil) # set description to nil
+    photo.description # call #description method again
+  end
+  
   # 
   # owner tests
   def test_should_return_owner_when_flickr_user
@@ -471,7 +567,7 @@ class TestFlickr < Test::Unit::TestCase
     photo = new_photo("owner" => nil)
     # stubbing private methods causes problems so we mock client method, which is what Photo#getInfo users to make API call
     Flickr.any_instance.expects(:photos_getInfo).returns('photo' => { 'owner'=>{'nsid'=>'abc123', 'username'=>'SomeUserName', 'realname'=>"", 'location'=>''}, 
-                                                                      'notes' => {}, 'urls' => {'url' => {'content' => 'http://prettyurl'}}}) 
+                                                                      'notes' => {}, 'tags' => {}, 'urls' => {'url' => {'content' => 'http://prettyurl'}}}) 
 
     owner = photo.owner
     assert_kind_of Flickr::User, owner
@@ -788,6 +884,41 @@ class TestFlickr < Test::Unit::TestCase
     assert_equal f.related_tags('monkey'), %w(zoo animal)
   end
 
+  # ##### Flickr::PhotoCollection tests
+  # 
+  def test_should_subclass_array_as_photo_collection
+     assert_equal Array, Flickr::PhotoCollection.superclass
+  end
+  
+  def test_should_make_page_a_reader_method
+    assert_equal "3", dummy_photo_collection.page
+  end
+  
+  def test_should_make_pages_a_reader_method
+    assert_equal "5", dummy_photo_collection.pages
+  end
+  
+  def test_should_make_perpage_a_reader_method
+    assert_equal "10", dummy_photo_collection.perpage
+  end
+  
+  def test_should_make_total_a_reader_method
+    assert_equal "42", dummy_photo_collection.total
+  end
+  
+  def test_should_instantiate_photo_collection_from_photos_hash
+    pc = Flickr::PhotoCollection.new(dummy_photos_response)
+    assert_kind_of Flickr::PhotoCollection, pc
+    assert_equal 2, pc.size
+    assert_kind_of Flickr::Photo, pc.first
+    assert_equal "foo123", pc.first["id"]
+  end
+  
+  def test_should_instantiate_photo_collection_using_given_api_key
+    photo = Flickr::PhotoCollection.new(dummy_photos_response, "some_api_key").first
+    assert_equal "some_api_key", photo.instance_variable_get(:@api_key)
+  end
+  
   private
   def flickr_client
     Flickr.new("some_api_key")
@@ -816,6 +947,10 @@ class TestFlickr < Test::Unit::TestCase
                         "owner" => Flickr::User.new("abc123", "some_user", nil, nil, "some_api_key") }.merge(options))
   end
   
+  def dummy_photo_collection
+    Flickr::PhotoCollection.new(dummy_photos_response)
+  end
+  
   def dummy_photos_response
     { "photos" => 
       { "photo" => 
@@ -823,7 +958,11 @@ class TestFlickr < Test::Unit::TestCase
            "key1" => "value1", 
            "key2" => "value2" },
          { "id" => "bar456", 
-           "key3" => "value3"}] } }
+           "key3" => "value3"}],
+        "page"=>"3", 
+        "pages"=>"5", 
+        "perpage"=>"10",
+        "total"=>"42" } }
   end
   
   def dummy_single_photo_response
@@ -886,6 +1025,57 @@ class TestFlickr < Test::Unit::TestCase
       <rsp stat="fail">
       	<err code="[error-code]" msg="[error-message]" />
       </rsp>
+    EOF
+  end
+
+  def photo_info_xml_response
+    <<-EOF
+    <?xml version="1.0" encoding="utf-8" ?>
+    <rsp stat="ok">
+      <photo id="22527834" secret="ae75bd3111" server="3142" farm="4" dateuploaded="1204145093" isfavorite="0" license="0" rotation="0" media="photo">
+      	<owner nsid="9383319@N05" username="Rootes_arrow_1725" realname="John" location="U.K" />
+      	<title>1964 120 amazon estate</title>
+      	<description>1964 Volvo 120 amazon estate spotted in derbyshire.</description>
+      	<visibility ispublic="1" isfriend="0" isfamily="0" />
+      	<dates posted="1204145093" taken="2007-06-10 13:18:27" takengranularity="0" lastupdate="1204166772" />
+      	<editability cancomment="0" canaddmeta="0" />
+      	<usage candownload="0" canblog="0" canprint="0" />
+      	<comments>1</comments>
+      	<notes>
+        	<note id="313" author="12037949754@N01" authorname="Bees" x="10" y="10" w="50" h="50">foo</note>
+        </notes>
+      	<tags>
+      		<tag id="9377979-2296968304-2228" author="9383319@N05" raw="volvo" machine_tag="0">volvo</tag>
+      		<tag id="9377979-2296968304-2229" author="9383319@N06" raw="amazon" machine_tag="0">amazon</tag>
+      	</tags>
+      	<urls>
+      		<url type="photopage">http://www.flickr.com/photos/rootes_arrow/2296968304/</url>
+      	</urls>
+      </photo>
+    </rsp>
+    EOF
+  end
+
+  def sparse_photo_info_xml_response
+    <<-EOF
+    <?xml version="1.0" encoding="utf-8" ?>
+    <rsp stat="ok">
+      <photo id="22527834" secret="ae75bd3111" server="3142" farm="4" dateuploaded="1204145093" isfavorite="0" license="0" rotation="0" media="photo">
+      	<owner nsid="9383319@N05" username="Rootes_arrow_1725" realname="John" location="U.K" />
+      	<title>1964 120 amazon estate</title>
+      	<description/>
+      	<visibility ispublic="1" isfriend="0" isfamily="0" />
+      	<dates posted="1204145093" taken="2007-06-10 13:18:27" takengranularity="0" lastupdate="1204166772" />
+      	<editability cancomment="0" canaddmeta="0" />
+      	<usage candownload="0" canblog="0" canprint="0" />
+      	<comments>1</comments>
+      	<notes/>
+      	<tags/>
+      	<urls>
+      		<url type="photopage">http://www.flickr.com/photos/rootes_arrow/2296968304/</url>
+      	</urls>
+      </photo>
+    </rsp>
     EOF
   end
 

@@ -1,3 +1,15 @@
+== 1.0.7 2008-11-26
+* 1 major enhancement
+ * When a collection of photos is fetched (e.g. by Flickr#search), a PhotoCollection object is now returned, a type of array, which allows easy access to the pagination information returned by Flickr (e.g. total items, pages, etc). Previously this info was lost
+* Minor enhancements:
+ * Refactored parsing of response when getting info about photo (public API is not changed). 
+ * All returned info is now parsed and stored (previously only some attributes were)
+ * A record is kept of whether info has been previously fetched from Flickr (avoids unnecessary extra calls)
+ * Improved User#getInfo. No longer makes API call for pretty_url (which was in addition to main getInfo call) or photos_url
+* Bugfixes
+ * Fixed Photo#source not to make unnecessary API call
+ * Fixed User#url not to make unnecessary API call
+
 == 1.0.6 2008-07-30
 * Bugfixes:
   * fixed Flickr#photos when used for searching
@@ -40,4 +52,3 @@
   * Removed call to flickr.people.getOnlineList in Flickr#users as that call is no longer in the Flickr API
 * Performance improvements:
   * Url and image source uri now generated without a call to the Flickr API, as per the Flickr API docs
-  
