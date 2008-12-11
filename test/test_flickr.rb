@@ -1,9 +1,16 @@
-require 'rubygems'
+#require 'rubygems'
 require 'flickr'
 require 'test/unit'
-require 'mocha'
+#require 'mocha'
 
 class TestFlickr < Test::Unit::TestCase
+
+  def test_get_list_of_photos_from_specified_photoset
+    flickr = Flickr.new('5a3f78d9a0f34169777dbb3ff266ba06')
+    testPhotoset = flickr.photoset('72157611041801782')
+    
+    assert_not_nil testPhotoset.getPhotos
+  end
 
   # Flickr client tests
   # 

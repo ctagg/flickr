@@ -156,6 +156,10 @@ class Flickr
                                             "client" => self) }
   end
   
+  def photoset(photoset_id)
+    Photoset.new(photoset_id, @api_key)
+  end
+  
   # Implements flickr.tags.getRelated
   def related_tags(tag)
     tags_getRelated('tag'=>tag)['tags']['tag']
@@ -688,6 +692,14 @@ class Flickr
       @description = info['description']
       @url = "http://www.flickr.com/photos/#{@owner.getInfo.username}/sets/#{@id}/"
       self
+    end
+    
+    def getPhotos
+      photosetPhotos = @client.request('photosets.getPhotos', {'photoset_id' => @id})
+      
+      collection = []
+      photosetPhotos['photoset'].each { |photo| collection << Photo.new(photo, @api_key) }
+      collection
     end
 
   end
