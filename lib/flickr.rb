@@ -698,7 +698,7 @@ class Flickr
       photosetPhotos = @client.request('photosets.getPhotos', {'photoset_id' => @id})
       
       collection = []
-      photosetPhotos['photoset'].each { |photo| collection << Photo.new(photo, @api_key) }
+      photosetPhotos['photoset']['photo'].each { |photo| collection << Photo.new(photo, @api_key) }
       collection
     end
 
