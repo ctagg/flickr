@@ -244,7 +244,6 @@ class Flickr
   # flickr.photos.getUntagged
   # flickr.photosets.create
   # flickr.photosets.orderSets
-  # flickr.tags.getListUserPopular
   # flickr.test.login
   # uploading
   class User
@@ -355,6 +354,11 @@ class Flickr
     def tags
       @client.tags_getListUser('user_id'=>@id)['who']['tags']['tag'].collect { |tag| tag }
     end
+
+		# Implements flickr.tags.getListUserPopular
+		def popular_tags(count = 10)
+			@client.tags_getListUserPopular('user_id'=>@id, 'count'=> count)['who']['tags']['tag'].each { |tag_score| tag_score["tag"] = tag_score.delete("content") }
+		end
 
     # Implements flickr.photos.getContactsPublicPhotos and flickr.photos.getContactsPhotos
     def contactsPhotos

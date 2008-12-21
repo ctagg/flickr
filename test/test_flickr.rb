@@ -419,6 +419,25 @@ class TestFlickr < Test::Unit::TestCase
     groups = user.groups
     assert_equal 1, groups.size
   end
+
+	def test_should_get_users_tags
+		f = flickr_client
+		user = new_user( 'client' => f )
+		f.expects(:tags_getListUser).with('user_id'=>user.id).returns({"who"=>{"tags"=>{"tag"=>["offf08", "ruby", "rubyonrails", "timoteo", "wbs", "webreakstuff"]}, "id"=>"9259187@N05"}, "stat"=>"ok"})
+		tags = user.tags
+		assert_kind_of Array, tags
+		assert_equal tags, ["offf08", "ruby", "rubyonrails", "timoteo", "wbs", "webreakstuff"]
+	end
+
+	def test_should_get_users_popular_tags
+		f = flickr_client
+		user = new_user( 'client' => f )
+		f.expects(:tags_getListUserPopular).with('user_id' => user.id).with(anything).returns({"who"=>{"tags"=>{"tag"=>[{"content"=>"design", "count"=>"94"}, {"content"=>"offf08", "count"=>"94"}, {"content"=>"ruby", "count"=>"3"}, {"content"=>"rubyonrails", "count"=>"3"}, {"content"=>"wbs", "count"=>"3"}, {"content"=>"webreakstuff", "count"=>"97"}]}, "id"=>"9259187@N05"}, "stat"=>"ok"})
+		pop_tags = user.popular_tags
+		assert_kind_of Array, pop_tags
+		assert_equal pop_tags, [{"tag"=>"design", "count"=>"94"}, {"tag"=>"offf08", "count"=>"94"}, {"tag"=>"ruby", "count"=>"3"}, {"tag"=>"rubyonrails", "count"=>"3"}, {"tag"=>"wbs", "count"=>"3"}, {"tag"=>"webreakstuff", "count"=>"97"}]
+	end
+	
   # def test_getInfo
   #   @u.getInfo
   #   assert_equal @username, @u.username
@@ -439,10 +458,6 @@ class TestFlickr < Test::Unit::TestCase
   # 
   # def test_photosets
   #   assert_kind_of Flickr::Photoset, @u.photosets.first              # public photosets
-  # end
-  # 
-  # def test_tags
-  #   assert_kind_of Array, @u.tags                                    # tags
   # end
   # 
   # def test_contactsPhotos
