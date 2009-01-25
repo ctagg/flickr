@@ -227,10 +227,14 @@ class Flickr
     attr_reader :page, :pages, :perpage, :total
     
     # builds a PhotoCollection from given params, such as those returned from 
-    # photos.search API call
+    # photos.search API call. Note all the info is contained in the value of 
+    # the first (and only) key-value pair of the response. The key will vary 
+    # depending on the original object the photos are related to (e.g 'photos',
+    # 'photoset', etc)
     def initialize(photos_api_response={}, api_key=nil)
-      [ "page", "pages", "perpage", "total" ].each { |i| instance_variable_set("@#{i}", photos_api_response["photos"][i])} 
-      collection = photos_api_response['photos']['photo'] || []
+      photos = photos_api_response.values.first 
+      [ "page", "pages", "perpage", "total" ].each { |i| instance_variable_set("@#{i}", photos[i])} 
+      collection = photos['photo'] || []
       collection = [collection] if collection.is_a? Hash
       collection.each { |photo| self << Photo.new(photo.delete('id'), api_key, photo) }
     end
@@ -699,11 +703,7 @@ class Flickr
     end
     
     def getPhotos
-      photosetPhotos = @client.request('photosets.getPhotos', {'photoset_id' => @id})
-      
-      collection = []
-      photosetPhotos['photoset']['photo'].each { |photo| collection << Photo.new(photo, @api_key) }
-      collection
+      photosetPhotos = @client.photos_request('photosets.getPhotos', {'photoset_id' => @id})
     end
 
   end

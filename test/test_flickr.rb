@@ -1,16 +1,9 @@
-#require 'rubygems'
+require 'rubygems'
 require 'flickr'
 require 'test/unit'
-#require 'mocha'
+require 'mocha'
 
 class TestFlickr < Test::Unit::TestCase
-
-  def test_get_list_of_photos_from_specified_photoset
-    flickr = Flickr.new('5a3f78d9a0f34169777dbb3ff266ba06')
-    testPhotoset = flickr.photoset('72157611041801782')
-    
-    assert_not_nil testPhotoset.getPhotos
-  end
 
   # Flickr client tests
   # 
@@ -850,17 +843,28 @@ class TestFlickr < Test::Unit::TestCase
   #   assert_nil photo['key2']
   # end
   
-  # ##### PHOTOSETS
-  #  
-  #  #def setup
-  #  #  super
-  #  #  @photoset = @f.photosets_create('title'=>@title, 'primary_photo_id'=>@photo_id)
-  #  #  @photoset_id = @photoset['photoset']['id']
-  #  #end
-  #  #def teardown
-  #  #  @f.photosets_delete('photoset_id'=>@photoset_id)
-  #  #end
-  # 
+  ## PHOTOSETS
+  
+  def test_should_initialize_photoset_from_id
+    photoset = Flickr::Photoset.new("foo123")
+    assert_equal "foo123", photoset.id
+  end
+  
+  def test_should_initialize_photoset_from_id_and_api_key
+    photoset = Flickr::Photoset.new("foo123", "some_api_key")
+    assert_equal "some_api_key", photoset.instance_variable_get(:@api_key)
+  end
+  
+  def test_should_get_photos_for_specified_photoset
+    Flickr.any_instance.expects(:request).with('photosets.getPhotos', {'photoset_id' => 'some_id'}).returns(dummy_photoset_photos_response)
+    photoset = Flickr::Photoset.new("some_id", "some_api_key")
+    
+    assert_kind_of Flickr::PhotoCollection, photos = photoset.getPhotos
+    assert_equal 2, photos.size
+    assert_kind_of Flickr::Photo, photos.first
+  end
+
+   
   #  def test_photosets_editMeta
   #    assert_equal @f.photosets_editMeta('photoset_id'=>@photoset_id, 'title'=>@title)['stat'], 'ok'
   #  end
@@ -1023,6 +1027,20 @@ class TestFlickr < Test::Unit::TestCase
         { "nsid" => "group1", 
            "name" => "Group One", 
            "eighteenplus" => "0" } } }
+  end
+  
+  def dummy_photoset_photos_response
+    { "photoset" => 
+      { "photo" => 
+        [{ "id" => "foo123", 
+           "key1" => "value1", 
+           "key2" => "value2" },
+         { "id" => "bar456", 
+           "key3" => "value3"}],
+        "page"=>"3", 
+        "pages"=>"5", 
+        "perpage"=>"10",
+        "total"=>"42" } }
   end
   
   def successful_xml_response

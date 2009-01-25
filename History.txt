@@ -1,3 +1,8 @@
+== 1.0.8 2009-01-25
+* 2 minor enhancements
+ * Refactored initialization of PhotoCollection so can be instantiated from response returned by photosets.getPhotos
+ * Added photosets.getPhotos. Returns PhotoCollection
+
 == 1.0.7 2008-11-26
 * 1 major enhancement
  * When a collection of photos is fetched (e.g. by Flickr#search), a PhotoCollection object is now returned, a type of array, which allows easy access to the pagination information returned by Flickr (e.g. total items, pages, etc). Previously this info was lost
