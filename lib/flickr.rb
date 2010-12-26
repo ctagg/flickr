@@ -1,6 +1,6 @@
 # = Flickr
 #   An insanely easy interface to the Flickr photo-sharing service. By Scott Raymond.
-#   
+#
 # Author::    Scott Raymond <sco@redgreenblu.com>
 # Copyright:: Copyright (c) 2005 Scott Raymond <sco@redgreenblu.com>. Additional content by Patrick Plattes and Chris Taggart (http://pushrod.wordpress.com)
 # License::   MIT <http://www.opensource.org/licenses/mit-license.php>
@@ -42,21 +42,21 @@ require 'digest/md5'
 class Flickr
   attr_reader :api_key, :auth_token
   attr_accessor :user
-  
-  HOST_URL = 'http://flickr.com'
+
+  HOST_URL = 'http://api.flickr.com'
   API_PATH = '/services/rest'
 
-  # Flickr, annoyingly, uses a number of representations to specify the size 
+  # Flickr, annoyingly, uses a number of representations to specify the size
   # of a photo, depending on the context. It gives a label such a "Small" or
-  # "Medium" to a size of photo, when returning all possible sizes. However, 
+  # "Medium" to a size of photo, when returning all possible sizes. However,
   # when generating the uri for the page that features that size of photo, or
-  # the source url for the image itself it uses a single letter. Bizarrely, 
+  # the source url for the image itself it uses a single letter. Bizarrely,
   # these letters are different depending on whether you want the Flickr page
   # for the photo or the source uri -- e.g. a "Small" photo (240 pixels on its
-  # longest side) may be viewed at 
+  # longest side) may be viewed at
   # "http://www.flickr.com/photos/sco/2397458775/sizes/s/"
-  # but its source is at 
-  # "http://farm4.static.flickr.com/3118/2397458775_2ec2ddc324_m.jpg". 
+  # but its source is at
+  # "http://farm4.static.flickr.com/3118/2397458775_2ec2ddc324_m.jpg".
   # The VALID_SIZES hash associates the correct letter with a label
   VALID_SIZES = { "Square" => ["s", "sq"],
                   "Thumbnail" => ["t", "t"],
@@ -65,14 +65,14 @@ class Flickr
                   "Large" => ["b", "l"]
                 }
 
-  # To use the Flickr API you need an api key 
-  # (see http://www.flickr.com/services/api/misc.api_keys.html), and the flickr 
+  # To use the Flickr API you need an api key
+  # (see http://www.flickr.com/services/api/misc.api_keys.html), and the flickr
   # client object shuld be initialized with this. You'll also need a shared
   # secret code if you want to use authentication (e.g. to get a user's
   # private photos)
   # There are two ways to initialize the Flickr client. The preferred way is with
-  # a hash of params, e.g. 'api_key' => 'your_api_key', 'shared_secret' => 
-  # 'shared_secret_code'. The older (deprecated) way is to pass an ordered series of 
+  # a hash of params, e.g. 'api_key' => 'your_api_key', 'shared_secret' =>
+  # 'shared_secret_code'. The older (deprecated) way is to pass an ordered series of
   # arguments. This is provided for continuity only, as several of the arguments
   # are no longer usable ('email', 'password')
   def initialize(api_key_or_params=nil, email=nil, password=nil, shared_secret=nil)
@@ -95,13 +95,13 @@ class Flickr
   def get_token_from(frob)
     auth_response = request("auth.getToken", :frob => frob)['auth']
     @auth_token = auth_response['token']
-    @user = User.new( 'id' => auth_response['user']['nsid'], 
+    @user = User.new( 'id' => auth_response['user']['nsid'],
                       'username' => auth_response['user']['username'],
                       'name' => auth_response['user']['fullname'],
                       'client' => self)
     @auth_token
   end
-  
+
   # Stores authentication credentials to use on all subsequent calls.
   # If authentication succeeds, returns a User object.
   # NB This call is no longer in API and will result in an error if called
@@ -111,7 +111,7 @@ class Flickr
     user = request('test.login')['user'] rescue fail
     @user = User.new(user['id'], nil, nil, nil, @api_key)
   end
-  
+
   # Implements flickr.urls.lookupGroup and flickr.urls.lookupUser
   def find_by_url(url)
     response = urls_lookupUser('url'=>url) rescue urls_lookupGroup('url'=>url) rescue nil
@@ -128,18 +128,18 @@ class Flickr
   def recent
     photos_request('photos.getRecent')
   end
-  
+
   def photos_search(params={})
     photos_request('photos.search', params)
   end
   alias_method :search, :photos_search
-  
+
   # Gets public photos with a given tag
   def tag(tag)
     photos('tags'=>tag)
   end
-  
-  # Implements flickr.people.findByEmail and flickr.people.findByUsername. 
+
+  # Implements flickr.people.findByEmail and flickr.people.findByUsername.
   def users(lookup=nil)
     user = people_findByEmail('find_email'=>lookup)['user'] rescue people_findByUsername('username'=>lookup)['user']
     return User.new("id" => user["nsid"], "username" => user["username"], "client" => self)
@@ -149,35 +149,35 @@ class Flickr
   def groups(group_name, options={})
     collection = groups_search({"text" => group_name}.merge(options))['groups']['group']
     collection = [collection] if collection.is_a? Hash
-    
-    collection.collect { |group| Group.new( "id" => group['nsid'], 
-                                            "name" => group['name'], 
+
+    collection.collect { |group| Group.new( "id" => group['nsid'],
+                                            "name" => group['name'],
                                             "eighteenplus" => group['eighteenplus'],
                                             "client" => self) }
   end
-  
+
   def photoset(photoset_id)
     Photoset.new(photoset_id, @api_key)
   end
-  
+
   # Implements flickr.tags.getRelated
   def related_tags(tag)
     tags_getRelated('tag'=>tag)['tags']['tag']
   end
-  
+
   # Implements flickr.photos.licenses.getInfo
   def licenses
     photos_licenses_getInfo['licenses']['license']
   end
-  
+
   # Returns url for user to login in to Flickr to authenticate app for a user
   def login_url(perms)
     "http://flickr.com/services/auth/?api_key=#{@api_key}&perms=#{perms}&api_sig=#{signature_from('api_key'=>@api_key, 'perms' => perms)}"
   end
-    
+
   # Implements everything else.
   # Any method not defined explicitly will be passed on to the Flickr API,
-  # and return an XmlSimple document. For example, Flickr#test_echo is not 
+  # and return an XmlSimple document. For example, Flickr#test_echo is not
   # defined, so it will pass the call to the flickr.test.echo method.
   def method_missing(method_id, params={})
     request(method_id.id2name.gsub(/_/, '.'), params)
@@ -201,45 +201,45 @@ class Flickr
     photos = request(method, params)
     PhotoCollection.new(photos, @api_key)
   end
-  
-  # Builds url for Flickr API REST request from given the flickr method name 
+
+  # Builds url for Flickr API REST request from given the flickr method name
   # (exclusing the 'flickr.' that begins each method call) and params (where
   # applicable) which should be supplied as a Hash (e.g 'user_id' => "foo123")
   def request_url(method, params={})
     method = 'flickr.' + method
     url = "#{@host}#{@api}/?api_key=#{@api_key}&method=#{method}"
     params.merge!('api_key' => @api_key, 'method' => method, 'auth_token' => @auth_token)
-    signature = signature_from(params) 
-    
+    signature = signature_from(params)
+
     url = "#{@host}#{@api}/?" + params.merge('api_sig' => signature).collect { |k,v| "#{k}=" + CGI::escape(v.to_s) unless v.nil? }.compact.join("&")
   end
-  
+
   def signature_from(params={})
     return unless @shared_secret # don't both getting signature if no shared_secret
     request_str = params.reject {|k,v| v.nil?}.collect {|p| "#{p[0].to_s}#{p[1]}"}.sort.join # build key value pairs, sort in alpha order then join them, ignoring those with nil value
     return Digest::MD5.hexdigest("#{@shared_secret}#{request_str}")
   end
-  
+
   # A collection of photos is returned as a PhotoCollection, a subclass of Array.
   # This allows us to retain the pagination info returned by Flickr and make it
   # accessible in a friendly way
   class PhotoCollection < Array
     attr_reader :page, :pages, :perpage, :total
-    
-    # builds a PhotoCollection from given params, such as those returned from 
-    # photos.search API call. Note all the info is contained in the value of 
-    # the first (and only) key-value pair of the response. The key will vary 
+
+    # builds a PhotoCollection from given params, such as those returned from
+    # photos.search API call. Note all the info is contained in the value of
+    # the first (and only) key-value pair of the response. The key will vary
     # depending on the original object the photos are related to (e.g 'photos',
     # 'photoset', etc)
     def initialize(photos_api_response={}, api_key=nil)
-      photos = photos_api_response.values.first 
-      [ "page", "pages", "perpage", "total" ].each { |i| instance_variable_set("@#{i}", photos[i])} 
+      photos = photos_api_response.values.first
+      [ "page", "pages", "perpage", "total" ].each { |i| instance_variable_set("@#{i}", photos[i])}
       collection = photos['photo'] || []
       collection = [collection] if collection.is_a? Hash
       collection.each { |photo| self << Photo.new(photo.delete('id'), api_key, photo) }
     end
   end
-  
+
   # Todo:
   # logged_in?
   # if logged in:
@@ -255,20 +255,20 @@ class Flickr
   # flickr.test.login
   # uploading
   class User
-    
+
     attr_reader :client, :id, :name, :location, :photos_url, :url, :count, :firstdate, :firstdatetaken
 
-    # A Flickr::User can be instantiated in two ways. The old (deprecated) 
-    # method is with an ordered series of values. The new method is with a 
-    # params Hash, which is easier when a variable number of params are 
+    # A Flickr::User can be instantiated in two ways. The old (deprecated)
+    # method is with an ordered series of values. The new method is with a
+    # params Hash, which is easier when a variable number of params are
     # supplied, which is the case here, and also avoids having to constantly
     # supply nil values for the email and password, which are now irrelevant
-    # as authentication is no longer done this way. 
-    # An associated flickr client will also be generated if an api key is 
+    # as authentication is no longer done this way.
+    # An associated flickr client will also be generated if an api key is
     # passed among the arguments or in the params hash. Alternatively, and
-    # most likely, an existing client object may be passed in the params hash 
+    # most likely, an existing client object may be passed in the params hash
     # (e.g. 'client' => some_existing_flickr_client_object), and this is
-    # what happends when users are initlialized as the result of a method 
+    # what happends when users are initlialized as the result of a method
     # called on the flickr client (e.g. flickr.users)
     def initialize(id_or_params_hash=nil, username=nil, email=nil, password=nil, api_key=nil)
       if id_or_params_hash.is_a?(Hash)
@@ -302,35 +302,35 @@ class Flickr
     def firstdatetaken
       @firstdatetaken.nil? ? getInfo.firstdatetaken : @firstdatetaken
     end
-    
-    # Builds url for user's photos page as per 
+
+    # Builds url for user's photos page as per
     # http://www.flickr.com/services/api/misc.urls.html
     def photos_url
       "http://www.flickr.com/photos/#{id}/"
     end
-        
-    # Builds url for user's profile page as per 
+
+    # Builds url for user's profile page as per
     # http://www.flickr.com/services/api/misc.urls.html
     def url
       "http://www.flickr.com/people/#{id}/"
     end
-    
+
     def pretty_url
       @pretty_url ||= @client.urls_getUserProfile('user_id'=>@id)['user']['url']
     end
-    
+
     # Implements flickr.people.getPublicGroups
     def groups
       collection = @client.people_getPublicGroups('user_id'=>@id)['groups']['group']
       collection = [collection] if collection.is_a? Hash
-      collection.collect { |group| Group.new( "id" => group['nsid'], 
+      collection.collect { |group| Group.new( "id" => group['nsid'],
                                            "name" => group['name'],
                                            "eighteenplus" => group['eighteenplus'],
                                            "client" => @client) }
     end
-    
+
     # Implements flickr.people.getPublicPhotos. Options hash allows you to add
-    # extra restrictions as per flickr.people.getPublicPhotos docs, e.g. 
+    # extra restrictions as per flickr.people.getPublicPhotos docs, e.g.
     # user.photos('per_page' => '25', 'extras' => 'date_taken')
     def photos(options={})
       @client.photos_request('people.getPublicPhotos', {'user_id' => @id}.merge(options))
@@ -347,12 +347,12 @@ class Flickr
       @client.contacts_getPublicList('user_id'=>@id)['contacts']['contact'].collect { |contact| User.new(contact['nsid'], contact['username'], nil, nil, @api_key) }
       #or
     end
-    
+
     # Implements flickr.favorites.getPublicList
     def favorites
       @client.photos_request('favorites.getPublicList', 'user_id' => @id)
     end
-    
+
     # Implements flickr.photosets.getList
     def photosets
       @client.photosets_getList('user_id'=>@id)['photosets']['photoset'].collect { |photoset| Photoset.new(photoset['id'], @api_key) }
@@ -372,7 +372,7 @@ class Flickr
     def contactsPhotos
       @client.photos_request('photos.getContactsPublicPhotos', 'user_id' => @id)
     end
-    
+
     def to_s
       @name
     end
@@ -403,22 +403,22 @@ class Flickr
       extra_params.each { |k,v| self.instance_variable_set("@#{k}", v) } # convert extra_params into instance variables
       @client = Flickr.new @api_key
     end
-    
-    # Allows access to all photos instance variables through hash like 
-    # interface, e.g. photo["datetaken"] returns @datetaken instance 
+
+    # Allows access to all photos instance variables through hash like
+    # interface, e.g. photo["datetaken"] returns @datetaken instance
     # variable. Useful for accessing any weird and wonderful parameter
     # that may have been returned by Flickr when finding the photo,
-    # e.g. those returned by the extras argument in 
+    # e.g. those returned by the extras argument in
     # flickr.people.getPublicPhotos
     def [](param_name)
       instance_variable_get("@#{param_name}")
     end
-    
+
     def title
       @title.nil? ? getInfo("title") : @title
     end
-    
-    # Returns the owner of the photo as a Flickr::User. If we have no info 
+
+    # Returns the owner of the photo as a Flickr::User. If we have no info
     # about the owner, we make an API call to get it. If we already have
     # the owner's id, create a user based on that. Either way, we cache the
     # result so we don't need to check again
@@ -540,7 +540,7 @@ class Flickr
     # Implements flickr.photos.notes.add
     def add_note(note)
     end
-    
+
     # Implements flickr.photos.setDates
     def dates=(dates)
     end
@@ -548,11 +548,11 @@ class Flickr
     # Implements flickr.photos.setPerms
     def perms=(perms)
     end
-    
+
     # Implements flickr.photos.setTags
     def tags=(tags)
     end
-    
+
     # Implements flickr.photos.setMeta
     def title=(title)
     end
@@ -562,7 +562,7 @@ class Flickr
     # Implements flickr.photos.addTags
     def add_tag(tag)
     end
-    
+
     # Implements flickr.photos.removeTag
     def remove_tag(tag)
     end
@@ -583,12 +583,12 @@ class Flickr
     # Implements flickr.photos.notes.edit
     def editNote(note_id)
     end
-        
+
     # Converts the Photo to a string by returning its title
     def to_s
       title
     end
-    
+
     private
 
       # Implements flickr.photos.getInfo
@@ -603,10 +603,10 @@ class Flickr
         @url = info['urls']['url']['content'] # assumes only one url
         instance_variable_get("@#{attrib}")
       end
-      
-      # Builds source uri of image from params (often returned from other 
-      # methods, e.g. User#photos). As specified at: 
-      # http://www.flickr.com/services/api/misc.urls.html. If size is given 
+
+      # Builds source uri of image from params (often returned from other
+      # methods, e.g. User#photos). As specified at:
+      # http://www.flickr.com/services/api/misc.urls.html. If size is given
       # should be one the keys in the VALID_SIZES hash, i.e.
       # "Square", "Thumbnail", "Medium", "Large", "Original", "Small" (These
       # are the values returned by flickr.photos.getSizes).
@@ -623,8 +623,8 @@ class Flickr
           "http://farm#{@farm}.static.flickr.com/#{@server}/#{@id}_#{@secret}_#{s_size}.jpg"
         end
       end
-      
-      # Builds uri of Flickr page for photo. By default returns the main 
+
+      # Builds uri of Flickr page for photo. By default returns the main
       # page for the photo, but if passed a size will return the simplified
       # flickr page featuring the given size of the photo
       # TODO: Handle "Original" size
@@ -645,13 +645,13 @@ class Flickr
   # flickr.groups.pools.remove
   class Group
     attr_reader :id, :client, :description, :name, :eighteenplus, :members, :online, :privacy, :url#, :chatid, :chatcount
-    
+
     def initialize(id_or_params_hash=nil, api_key=nil)
       if id_or_params_hash.is_a?(Hash)
         id_or_params_hash.each { |k,v| self.instance_variable_set("@#{k}", v) } # convert extra_params into instance variables
       else
         @id = id_or_params_hash
-        @api_key = api_key      
+        @api_key = api_key
         @client = Flickr.new @api_key
       end
     end
@@ -701,11 +701,11 @@ class Flickr
       @url = "http://www.flickr.com/photos/#{@owner.getInfo.username}/sets/#{@id}/"
       self
     end
-    
+
     def getPhotos
       photosetPhotos = @client.photos_request('photosets.getPhotos', {'photoset_id' => @id})
     end
 
   end
-  
+
 end
